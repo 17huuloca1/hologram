@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>ESP32 Hologram Studio - Paint & Image Cropper</title>
+    <title>Cube 3D Studio - Bảng Vẽ & Chiếu Hoạt Ảnh</title>
     <style>
         :root {
             --bg-primary: #080b12;
@@ -111,11 +112,28 @@
             gap: 6px;
         }
 
-        .btn:hover { background: var(--accent-hover); }
-        .btn-secondary { background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border); }
-        .btn-secondary:hover { background: #323946; }
-        .btn-danger { background: var(--danger); color: #fff; }
-        .btn-danger:hover { background: #d73a49; }
+        .btn:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: #323946;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: #fff;
+        }
+
+        .btn-danger:hover {
+            background: #d73a49;
+        }
 
         .status-badge {
             padding: 4px 10px;
@@ -200,7 +218,7 @@
             background: #000;
             border: 2px solid var(--border);
             border-radius: 8px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -280,8 +298,14 @@
             transition: transform 0.1s;
         }
 
-        .color-swatch:hover { transform: scale(1.1); }
-        .color-swatch.active { border-color: #fff; box-shadow: 0 0 8px rgba(255,255,255,0.6); }
+        .color-swatch:hover {
+            transform: scale(1.1);
+        }
+
+        .color-swatch.active {
+            border-color: #fff;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+        }
 
         .slider-row {
             display: flex;
@@ -361,7 +385,8 @@
             max-width: 100%;
         }
 
-        #cropSourceCanvas, #gifCropSourceCanvas {
+        #cropSourceCanvas,
+        #gifCropSourceCanvas {
             display: block;
             max-width: 480px;
             max-height: 480px;
@@ -435,7 +460,7 @@
             width: 100%;
             margin-top: 10px;
         }
-    
+
         /* Canvas HUD Outer Frame */
         .canvas-container-outer {
             display: flex;
@@ -444,7 +469,8 @@
             gap: 8px;
         }
 
-        .canvas-hud-header, .canvas-hud-footer {
+        .canvas-hud-header,
+        .canvas-hud-footer {
             width: 248px;
             display: flex;
             justify-content: space-between;
@@ -485,7 +511,7 @@
             box-sizing: border-box;
             border: 4px solid var(--accent);
             border-radius: 12px;
-            box-shadow: 0 0 25px rgba(0, 242, 254, 0.4), inset 0 0 10px rgba(0,0,0,0.9);
+            box-shadow: 0 0 25px rgba(0, 242, 254, 0.4), inset 0 0 10px rgba(0, 0, 0, 0.9);
             image-rendering: pixelated;
             touch-action: none;
             user-select: none;
@@ -557,8 +583,17 @@
         }
 
         @keyframes pulseGlow {
-            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 2px var(--accent)); }
-            50% { transform: scale(1.25); filter: drop-shadow(0 0 8px var(--accent)); }
+
+            0%,
+            100% {
+                transform: scale(1);
+                filter: drop-shadow(0 0 2px var(--accent));
+            }
+
+            50% {
+                transform: scale(1.25);
+                filter: drop-shadow(0 0 8px var(--accent));
+            }
         }
 
         .loading-pct-badge {
@@ -577,7 +612,7 @@
             overflow: hidden;
             border: 1px solid rgba(0, 242, 254, 0.3);
             position: relative;
-            box-shadow: inset 0 2px 5px rgba(0,0,0,0.8);
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.8);
         }
 
         .loading-fill-bar {
@@ -592,8 +627,13 @@
         }
 
         @keyframes progressShimmer {
-            0% { background-position: 0% 50%; }
-            100% { background-position: 100% 50%; }
+            0% {
+                background-position: 0% 50%;
+            }
+
+            100% {
+                background-position: 100% 50%;
+            }
         }
 
         .loading-detail-row {
@@ -606,29 +646,244 @@
             font-family: monospace;
         }
 
+
+        /* ==================================================================== */
+        /* RESPONSIVE DESIGN & CHỐNG RUNG VUỐT CHO ĐIỆN THOẠI                    */
+        /* ==================================================================== */
+        html,
+        body {
+            overscroll-behavior-y: none;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .canvas-container-outer {
+            width: 100%;
+            max-width: 360px;
+            margin: 0 auto;
+        }
+
+        .canvas-hud-header,
+        .canvas-hud-footer {
+            width: 100%;
+            max-width: 360px;
+            box-sizing: border-box;
+        }
+
+        .canvas-wrapper {
+            width: 100%;
+            max-width: 360px;
+            aspect-ratio: 1 / 1;
+            box-sizing: border-box;
+            touch-action: none !important;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            overscroll-behavior: none;
+        }
+
+        #paintCanvas {
+            cursor: crosshair;
+            display: block;
+            background: #000000;
+            width: 100% !important;
+            height: 100% !important;
+            max-width: 360px !important;
+            max-height: 360px !important;
+            aspect-ratio: 1 / 1;
+            box-sizing: border-box;
+            border: 4px solid var(--accent);
+            border-radius: 12px;
+            box-shadow: 0 0 25px rgba(0, 242, 254, 0.4), inset 0 0 10px rgba(0, 0, 0, 0.9);
+            image-rendering: pixelated;
+            touch-action: none !important;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px 8px;
+            }
+
+            header,
+            .header {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 12px !important;
+                padding: 12px !important;
+            }
+
+            .brand {
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+                width: 100% !important;
+            }
+
+            .brand h1 {
+                font-size: 1.15rem !important;
+            }
+
+            .ws-bar {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr !important;
+                gap: 8px !important;
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+
+            #connTypeSelect {
+                grid-column: 1 / 2 !important;
+                width: 100% !important;
+                min-height: 42px !important;
+                font-size: 0.85rem !important;
+            }
+
+            #connInput {
+                grid-column: 2 / 3 !important;
+                width: 100% !important;
+                min-width: 0 !important;
+                min-height: 42px !important;
+                font-size: 0.85rem !important;
+                box-sizing: border-box !important;
+            }
+
+            #btnConnect {
+                grid-column: 1 / 2 !important;
+                min-height: 42px !important;
+                font-weight: 700 !important;
+                font-size: 0.9rem !important;
+            }
+
+            #btnResetWifi {
+                grid-column: 2 / 3 !important;
+                min-height: 42px !important;
+                font-size: 0.82rem !important;
+                padding: 8px !important;
+            }
+
+            #statusBadge {
+                grid-column: 1 / -1 !important;
+                width: 100% !important;
+                justify-content: center !important;
+                padding: 8px 12px !important;
+                box-sizing: border-box !important;
+                font-size: 0.85rem !important;
+            }
+
+            /* Tabs 2x2 trên mobile */
+            .tabs {
+                display: grid !important;
+                grid-template-columns: 1fr 1fr !important;
+                gap: 6px !important;
+                width: 100% !important;
+            }
+
+            .tab-btn {
+                padding: 10px 6px !important;
+                font-size: 0.82rem !important;
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                text-align: center !important;
+            }
+
+            .main-container {
+                gap: 12px !important;
+                padding: 0 !important;
+            }
+
+            .paint-workspace {
+                flex-direction: column !important;
+                align-items: center !important;
+                gap: 14px !important;
+            }
+
+            .toolbar {
+                width: 100% !important;
+                min-width: 0 !important;
+            }
+
+            .color-palette {
+                gap: 8px !important;
+                justify-content: center !important;
+            }
+
+            .color-swatch {
+                width: 36px !important;
+                height: 36px !important;
+            }
+
+            .btn {
+                min-height: 42px !important;
+            }
+
+            #btnSendCanvas,
+            #btnClearCanvas {
+                min-height: 46px !important;
+                font-size: 0.95rem !important;
+                font-weight: 700 !important;
+            }
+
+            /* Tab 2 & 3 Cropper trên điện thoại */
+            .crop-workspace {
+                flex-direction: column !important;
+                align-items: center !important;
+                gap: 14px !important;
+            }
+
+            .crop-stage {
+                max-width: 100% !important;
+            }
+
+            #cropSourceCanvas,
+            #gifCropSourceCanvas {
+                max-width: 100% !important;
+                height: auto !important;
+            }
+
+            .crop-handle {
+                width: 28px !important;
+                height: 28px !important;
+                bottom: -14px !important;
+                right: -14px !important;
+                box-shadow: 0 0 14px #00f2fe !important;
+            }
+
+            #previewCanvas,
+            #gifCropPreviewCanvas {
+                width: min(85vw, 240px) !important;
+                height: min(85vw, 240px) !important;
+            }
+        }
     </style>
     <script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/omggif@1.0.10/omggif.js"></script>
 </head>
+
 <body>
 
     <header>
         <div class="brand">
             <span style="font-size: 1.5rem;">✨</span>
             <div>
-                <h1>ESP32 <span>Hologram Studio</span></h1>
-                <p style="font-size: 0.75rem; color: var(--text-dim);">TFT 2.4" 240x320 Remote Canvas & Smart Cropper</p>
+                <h1>Cube <span>3D Studio</span></h1>
+                <p style="font-size: 0.75rem; color: var(--text-dim);">TFT 2.4" 240x320 Remote Canvas & Smart Cropper
+                </p>
             </div>
         </div>
 
         <div class="ws-bar">
-            <select id="connTypeSelect" style="background: var(--bg-card); color: var(--accent); border: 1px solid var(--border); padding: 8px 10px; border-radius: 8px; font-weight: 600; font-size: 0.82rem; cursor: pointer; outline: none;">
+            <select id="connTypeSelect"
+                style="background: var(--bg-card); color: var(--accent); border: 1px solid var(--border); padding: 8px 10px; border-radius: 8px; font-weight: 600; font-size: 0.82rem; cursor: pointer; outline: none;">
                 <option value="lan" selected>🏠 Wi-Fi Nhà (LAN)</option>
                 <option value="cloud">🌐 Cloud 4G (HiveMQ)</option>
             </select>
             <input type="text" id="connInput" class="ws-input" placeholder="192.168.1.59" value="192.168.1.59">
             <button id="btnConnect" class="btn">Kết nối</button>
-            <button id="btnResetWifi" class="btn btn-secondary" style="font-size: 0.8rem; padding: 8px 12px;" title="Xóa Wi-Fi cũ để ESP32 phát AP cấu hình mạng mới">📶 Đổi Wi-Fi</button>
+            <button id="btnResetWifi" class="btn btn-secondary" style="font-size: 0.8rem; padding: 8px 12px;"
+                title="Xóa Wi-Fi cũ để Cube phát AP cấu hình mạng mới">📶 Đổi Wi-Fi</button>
             <div id="statusBadge" class="status-badge">
                 <div class="status-dot"></div>
                 <span id="statusText">Chưa kết nối</span>
@@ -646,10 +901,12 @@
     <!-- TAB 1: PAINT -->
     <div id="paintTab" class="main-container">
         <div class="paint-workspace card">
-                <!-- Cảnh báo kết nối nếu chưa kết nối -->
-                <div id="connWarningBanner" style="display: none; background: rgba(255, 68, 68, 0.15); border: 1px solid #ff4444; color: #ff6666; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; margin-bottom: 8px; text-align: center;">
-                    ⚠️ Bạn chưa kết nối với ESP32! Nét vẽ chỉ lưu cục bộ. Hãy nhập IP <strong>192.168.1.59</strong> và bấm <strong>Kết nối</strong> ở trên.
-                </div>
+            <!-- Cảnh báo kết nối nếu chưa kết nối -->
+            <div id="connWarningBanner"
+                style="display: none; background: rgba(255, 68, 68, 0.15); border: 1px solid #ff4444; color: #ff6666; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; margin-bottom: 8px; text-align: center;">
+                ⚠️ Bạn chưa kết nối với Cube! Nét vẽ chỉ lưu cục bộ. Hãy nhập IP <strong>192.168.1.59</strong> và bấm
+                <strong>Kết nối</strong> ở trên.
+            </div>
 
             <div class="canvas-container-outer">
                 <div class="canvas-hud-header">
@@ -673,7 +930,8 @@
                         <input type="checkbox" id="realtimeToggle" checked>
                         <div>
                             <strong style="font-size: 0.85rem;">Vẽ trực tiếp (Real-time)</strong>
-                            <p style="font-size: 0.75rem; color: var(--text-dim);">Nét vẽ hiện ngay lập tức trên màn hình ESP32</p>
+                            <p style="font-size: 0.75rem; color: var(--text-dim);">Nét vẽ hiện ngay lập tức trên màn
+                                hình Cube</p>
                         </div>
                     </label>
                 </div>
@@ -695,16 +953,21 @@
                     </div>
                 </div>
 
-                                <div class="tool-group">
+                <div class="tool-group">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div class="tool-title">🔄 Hướng Màn Hình ESP32</div>
-                        <span id="currentRotLabel" style="font-size: 0.75rem; color: var(--accent); font-weight: 600;">90° (Ngang)</span>
+                        <div class="tool-title">🔄 Hướng Màn Hình Cube</div>
+                        <span id="currentRotLabel"
+                            style="font-size: 0.75rem; color: var(--accent); font-weight: 600;">90° (Ngang)</span>
                     </div>
                     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
-                        <button type="button" class="tool-btn rot-btn active" data-rot="0" title="Xoay 0° Dọc">0° Dọc</button>
-                        <button type="button" class="tool-btn rot-btn" data-rot="1" title="Xoay 90° Ngang">90° Ngang</button>
-                        <button type="button" class="tool-btn rot-btn" data-rot="2" title="Xoay 180° Dọc">180° Dọc</button>
-                        <button type="button" class="tool-btn rot-btn" data-rot="3" title="Xoay 270° Ngang">270° Ngang</button>
+                        <button type="button" class="tool-btn rot-btn active" data-rot="0" title="Xoay 0° Dọc">0°
+                            Dọc</button>
+                        <button type="button" class="tool-btn rot-btn" data-rot="1" title="Xoay 90° Ngang">90°
+                            Ngang</button>
+                        <button type="button" class="tool-btn rot-btn" data-rot="2" title="Xoay 180° Dọc">180°
+                            Dọc</button>
+                        <button type="button" class="tool-btn rot-btn" data-rot="3" title="Xoay 270° Ngang">270°
+                            Ngang</button>
                     </div>
                 </div>
 
@@ -722,7 +985,8 @@
                         <div class="color-swatch" style="background: #795548;" data-color="#795548"></div>
                         <div class="color-swatch" style="background: #607d8b;" data-color="#607d8b"></div>
                         <div class="color-swatch" style="background: #222222;" data-color="#222222"></div>
-                        <input type="color" id="customColor" value="#ff0000" style="width: 100%; aspect-ratio: 1; border: none; background: transparent; cursor: pointer;">
+                        <input type="color" id="customColor" value="#ff0000"
+                            style="width: 100%; aspect-ratio: 1; border: none; background: transparent; cursor: pointer;">
                     </div>
                 </div>
 
@@ -730,13 +994,13 @@
                     <button id="btnClear" class="btn btn-secondary" style="flex: 1;">🗑️ Xóa hết</button>
                     <button id="btnSendCanvas" class="btn" style="flex: 1.5;">🚀 Gửi nguyên bức</button>
                 </div>
-                
+
                 <!-- Thanh Loading Tab 1 -->
                 <div class="modern-loading-card" id="tab1LoadingCard">
                     <div class="loading-header-row">
                         <div class="loading-title-group">
                             <span class="pulse-icon">🚀</span>
-                            <span id="tab1LoadingTitle">Đang gửi ảnh lên ESP32...</span>
+                            <span id="tab1LoadingTitle">Đang gửi ảnh lên Cube...</span>
                         </div>
                         <span class="loading-pct-badge" id="tab1LoadingPct">0%</span>
                     </div>
@@ -759,13 +1023,15 @@
                 <input type="file" id="fileInput" accept="image/*,.gif" style="display: none;">
                 <div style="font-size: 2rem; margin-bottom: 6px;">📂</div>
                 <strong style="color: var(--accent);">Bấm vào đây để chọn ảnh (hoặc kéo thả ảnh vào)</strong>
-                <p style="font-size: 0.8rem; color: var(--text-dim); margin-top: 4px;">Hỗ trợ PNG, JPG, GIF, WebP. Khung cắt khóa cứng tỉ lệ 240:320 để không méo ảnh.</p>
+                <p style="font-size: 0.8rem; color: var(--text-dim); margin-top: 4px;">Hỗ trợ PNG, JPG, GIF, WebP. Khung
+                    cắt khóa cứng tỉ lệ 240:320 để không méo ảnh.</p>
             </div>
 
             <div class="crop-workspace" id="cropWorkspace" style="display: none;">
                 <!-- Vùng ảnh gốc để kéo khung -->
                 <div style="text-align: center;">
-                    <p style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 6px;">Kéo khung hoặc kéo góc chấm xanh để chọn vùng cần cắt:</p>
+                    <p style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 6px;">Kéo khung hoặc kéo góc
+                        chấm xanh để chọn vùng cần cắt:</p>
                     <div class="crop-stage" id="cropStage">
                         <canvas id="cropSourceCanvas"></canvas>
                         <div class="crop-box" id="cropBox">
@@ -778,12 +1044,21 @@
                 <div class="preview-pane">
                     <p style="font-size: 0.8rem; color: var(--text-dim);">Xem trước trên màn hình TFT:</p>
                     <canvas id="previewCanvas" width="240" height="240"></canvas>
-                    <button id="btnSendCropped" class="btn" style="width: 100%; margin-top: 10px;">🚀 Cắt & Gửi lên ESP32 (Chuẩn 240x240)</button>
-                    <button id="btnSendGifAnim" class="btn" style="width: 100%; margin-top: 6px; background: #e040fb; color: #fff; display: none;">🎞️ Gửi GIF động trực tiếp (Stream)</button>
-                    <button id="btnUploadCroppedGif" class="btn" style="width: 100%; margin-top: 6px; background: #00d26a; color: #000; font-weight: bold; display: none;">💾 Nạp GIF đã cắt vào Flash ESP32 (60 FPS)</button>
-                    <button id="btnTab2ColorToggle" class="btn" style="width: 100%; margin-top: 6px; background: #6366f1; color: #fff; font-size: 0.8rem; font-weight: 600;">🎨 Đổi hệ màu RGB ⇋ BGR (Sửa lệch màu Đỏ/Xanh)</button>
-                    <button id="btnStopGif" class="btn btn-danger" style="width: 100%; margin-top: 6px; display: none;">⏹️ Dừng phát GIF</button>
-                    <div id="gifFrameInfo" style="font-size: 0.75rem; color: var(--text-dim); margin-top: 4px; display: none;"></div>
+                    <button id="btnSendCropped" class="btn" style="width: 100%; margin-top: 10px;">🚀 Cắt & Gửi lên Cube
+                        (Chuẩn 240x240)</button>
+                    <button id="btnSendGifAnim" class="btn"
+                        style="width: 100%; margin-top: 6px; background: #e040fb; color: #fff; display: none;">🎞️ Gửi
+                        GIF động trực tiếp (Stream)</button>
+                    <button id="btnUploadCroppedGif" class="btn"
+                        style="width: 100%; margin-top: 6px; background: #00d26a; color: #000; font-weight: bold; display: none;">💾
+                        Nạp GIF đã cắt vào Flash Cube (60 FPS)</button>
+                    <button id="btnTab2ColorToggle" class="btn"
+                        style="width: 100%; margin-top: 6px; background: #6366f1; color: #fff; font-size: 0.8rem; font-weight: 600;">🎨
+                        Đổi hệ màu RGB ⇋ BGR (Sửa lệch màu Đỏ/Xanh)</button>
+                    <button id="btnStopGif" class="btn btn-danger"
+                        style="width: 100%; margin-top: 6px; display: none;">⏹️ Dừng phát GIF</button>
+                    <div id="gifFrameInfo"
+                        style="font-size: 0.75rem; color: var(--text-dim); margin-top: 4px; display: none;"></div>
                 </div>
             </div>
 
@@ -792,7 +1067,7 @@
                 <div class="loading-header-row">
                     <div class="loading-title-group">
                         <span class="pulse-icon">⚡</span>
-                        <span id="tab2LoadingTitle">Đang truyền dữ liệu lên ESP32...</span>
+                        <span id="tab2LoadingTitle">Đang truyền dữ liệu lên Cube...</span>
                     </div>
                     <span class="loading-pct-badge" id="tab2LoadingPct">0%</span>
                 </div>
@@ -812,35 +1087,49 @@
         <div class="card" style="width: 100%; display: flex; flex-direction: column; gap: 16px;">
             <div style="border-bottom: 1px solid var(--border); padding-bottom: 10px;">
                 <h2 style="font-size: 1.1rem; color: var(--accent);">👾 Trình chiếu Hologram GIF (Native 60 FPS)</h2>
-                <p style="font-size: 0.8rem; color: var(--text-dim);">Chuyển đổi giữa chế độ vẽ và chiếu ảnh động hologram 240x240 qua lăng kính quang học.</p>
+                <p style="font-size: 0.8rem; color: var(--text-dim);">Chuyển đổi giữa chế độ vẽ và chiếu ảnh động
+                    hologram 240x240 qua lăng kính quang học.</p>
             </div>
 
             <!-- Tải lên GIF Tùy Chọn -->
-            <div style="background: var(--bg-card); padding: 14px; border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
-                    <strong style="color: var(--accent); font-size: 0.95rem;">📂 Tải Lên &amp; Chiếu GIF Mới (Từ Máy / ĐT)</strong>
-                    <span style="font-size: 0.75rem; color: var(--text-dim);">Tự động lưu vào Flash ESP32 và chiếu động</span>
+            <div
+                style="background: var(--bg-card); padding: 14px; border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px;">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+                    <strong style="color: var(--accent); font-size: 0.95rem;">📂 Tải Lên &amp; Chiếu GIF Mới (Từ Máy /
+                        ĐT)</strong>
+                    <span style="font-size: 0.75rem; color: var(--text-dim);">Tự động lưu vào Flash Cube và chiếu
+                        động</span>
                 </div>
-                
-                <div class="upload-dropzone" id="gifDropzone" style="padding: 18px; border: 2px dashed var(--accent); border-radius: 8px; text-align: center; cursor: pointer;">
+
+                <div class="upload-dropzone" id="gifDropzone"
+                    style="padding: 18px; border: 2px dashed var(--accent); border-radius: 8px; text-align: center; cursor: pointer;">
                     <input type="file" id="gifFileInput" accept=".gif,image/gif" style="display: none;">
                     <div style="font-size: 2rem; margin-bottom: 4px;">🎬</div>
                     <strong style="color: var(--accent); font-size: 0.9rem;">Bấm vào đây để chọn file GIF động</strong>
-                    <p style="font-size: 0.75rem; color: var(--text-dim); margin-top: 4px;">Hỗ trợ mọi file .gif. ESP32 sẽ xóa ảnh cũ và phát hoạt ảnh mượt mà 60 FPS!</p>
+                    <p style="font-size: 0.75rem; color: var(--text-dim); margin-top: 4px;">Hỗ trợ mọi file .gif. Cube
+                        sẽ xóa ảnh cũ và phát hoạt ảnh mượt mà 60 FPS!</p>
                 </div>
 
                 <!-- Preview GIF vừa chọn -->
-                <div id="customGifPreviewCard" style="display: none; flex-direction: column; gap: 10px; background: var(--bg-secondary); padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
+                <div id="customGifPreviewCard"
+                    style="display: none; flex-direction: column; gap: 10px; background: var(--bg-secondary); padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
                     <div style="display: flex; align-items: center; gap: 14px;">
-                        <img id="customGifImg" src="" style="width: 70px; height: 70px; object-fit: contain; background: #000; border-radius: 6px; border: 1px solid var(--border);">
+                        <img id="customGifImg" src=""
+                            style="width: 70px; height: 70px; object-fit: contain; background: #000; border-radius: 6px; border: 1px solid var(--border);">
                         <div style="flex: 1; min-width: 0;">
-                            <div id="customGifName" style="font-weight: 600; font-size: 0.85rem; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">ten_file.gif</div>
-                            <div style="display: flex; gap: 10px; font-size: 0.75rem; color: var(--text-dim); margin-top: 2px;">
+                            <div id="customGifName"
+                                style="font-weight: 600; font-size: 0.85rem; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                ten_file.gif</div>
+                            <div
+                                style="display: flex; gap: 10px; font-size: 0.75rem; color: var(--text-dim); margin-top: 2px;">
                                 <span id="customGifSize">0 KB</span>
                                 <span id="customGifDims" style="color: var(--accent);">240x240px</span>
                             </div>
-                            <label style="font-size: 0.78rem; color: var(--accent); display: flex; align-items: center; gap: 6px; margin-top: 6px; cursor: pointer;">
-                                <input type="checkbox" id="chkAutoOptimizeGif" checked> ⚡ Tự động co giãn 240x240 &amp; nén chuẩn Flash ESP32
+                            <label
+                                style="font-size: 0.78rem; color: var(--accent); display: flex; align-items: center; gap: 6px; margin-top: 6px; cursor: pointer;">
+                                <input type="checkbox" id="chkAutoOptimizeGif" checked> ⚡ Tự động co giãn 240x240 &amp;
+                                nén chuẩn Flash Cube
                             </label>
                             <!-- Thanh Loading Tab 3 -->
                             <div class="modern-loading-card" id="gifUploadProgress">
@@ -856,30 +1145,39 @@
                                 </div>
                                 <div class="loading-detail-row">
                                     <span id="gifUploadStatusText">Đang chuẩn bị...</span>
-                                    <span id="tab3LoadingSpeed">Flash ESP32 • 60 FPS</span>
+                                    <span id="tab3LoadingSpeed">Flash Cube • 60 FPS</span>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div id="customGifAdvice" style="font-size: 0.75rem; color: var(--text-dim); background: rgba(0,210,106,0.1); padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(0,210,106,0.2); display: none;"></div>
+                    <div id="customGifAdvice"
+                        style="font-size: 0.75rem; color: var(--text-dim); background: rgba(0,210,106,0.1); padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(0,210,106,0.2); display: none;">
+                    </div>
                     <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                        <button id="btnDeleteCustomGif" class="btn btn-danger" style="padding: 8px 14px; font-size: 0.82rem;">
+                        <button id="btnDeleteCustomGif" class="btn btn-danger"
+                            style="padding: 8px 14px; font-size: 0.82rem;">
                             🗑️ Xóa GIF Flash
                         </button>
-                        <button id="btnUploadAndPlayGif" class="btn" style="padding: 8px 18px; font-size: 0.85rem; white-space: nowrap;">
+                        <button id="btnUploadAndPlayGif" class="btn"
+                            style="padding: 8px 18px; font-size: 0.85rem; white-space: nowrap;">
                             🚀 Chiếu Ngay
                         </button>
                     </div>
                 </div>
 
                 <!-- Khung cắt tương tác cho GIF lớn hơn 240x240 (như Tab 2) -->
-                <div class="crop-workspace" id="gifCropWorkspace" style="display: none; margin-top: 8px; background: var(--bg-card); padding: 14px; border-radius: 8px; border: 1px solid var(--border); flex-wrap: wrap; gap: 20px; justify-content: center; align-items: flex-start;">
-                    <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 6px;">
-                        <strong style="color: var(--accent); font-size: 0.95rem;">✂️ Cắt vùng chọn Hologram (240x240)</strong>
-                        <span style="font-size: 0.75rem; color: var(--accent);" id="gifCropDimsBadge">Khóa vuông 1:1 chuẩn lăng kính</span>
+                <div class="crop-workspace" id="gifCropWorkspace"
+                    style="display: none; margin-top: 8px; background: var(--bg-card); padding: 14px; border-radius: 8px; border: 1px solid var(--border); flex-wrap: wrap; gap: 20px; justify-content: center; align-items: flex-start;">
+                    <div
+                        style="width: 100%; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 6px;">
+                        <strong style="color: var(--accent); font-size: 0.95rem;">✂️ Cắt vùng chọn Hologram
+                            (240x240)</strong>
+                        <span style="font-size: 0.75rem; color: var(--accent);" id="gifCropDimsBadge">Khóa vuông 1:1
+                            chuẩn lăng kính</span>
                     </div>
                     <div style="text-align: center;">
-                        <p style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 6px;">Kéo khung hoặc kéo góc chấm xanh để chọn vùng cần cắt:</p>
+                        <p style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 6px;">Kéo khung hoặc kéo góc
+                            chấm xanh để chọn vùng cần cắt:</p>
                         <div class="crop-stage" id="gifCropStage">
                             <canvas id="gifCropSourceCanvas"></canvas>
                             <div class="crop-box" id="gifCropBox">
@@ -889,10 +1187,13 @@
                     </div>
                     <div class="preview-pane">
                         <p style="font-size: 0.8rem; color: var(--text-dim);">Xem trước trên màn hình TFT (240x240):</p>
-                        <canvas id="gifCropPreviewCanvas" width="240" height="240" style="width: 240px; height: 240px; background: #000; border: 2px solid var(--accent); border-radius: 6px; display: block;"></canvas>
-                        <div id="gifCropPreviewInfo" style="font-size: 0.75rem; color: var(--accent); margin-top: 4px;"></div>
-                        <button id="btnCropAndPlayCustomGif" class="btn" style="width: 100%; margin-top: 10px; font-weight: bold; padding: 10px 16px;">
-                            🚀 Cắt &amp; Chiếu Lên ESP32 (60 FPS)
+                        <canvas id="gifCropPreviewCanvas" width="240" height="240"
+                            style="width: 240px; height: 240px; background: #000; border: 2px solid var(--accent); border-radius: 6px; display: block;"></canvas>
+                        <div id="gifCropPreviewInfo" style="font-size: 0.75rem; color: var(--accent); margin-top: 4px;">
+                        </div>
+                        <button id="btnCropAndPlayCustomGif" class="btn"
+                            style="width: 100%; margin-top: 10px; font-weight: bold; padding: 10px 16px;">
+                            🚀 Cắt &amp; Chiếu Lên Cube (60 FPS)
                         </button>
                     </div>
                 </div>
@@ -900,617 +1201,665 @@
 
             <!-- Các nút phát GIF -->
             <div style="display: flex; flex-direction: column; gap: 8px;">
-                <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">👾 Danh sách Hoạt ảnh GIF:</div>
+                <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">👾 Danh sách Hoạt ảnh GIF:
+                </div>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;">
-                    <button id="btnPlayCustom" class="btn" style="padding: 12px; font-size: 0.9rem; justify-content: center; background: #00d26a; color: #000; font-weight: bold; display: none;">
+                    <button id="btnPlayCustom" class="btn"
+                        style="padding: 12px; font-size: 0.9rem; justify-content: center; background: #00d26a; color: #000; font-weight: bold; display: none;">
                         ▶️ Phát GIF Tùy Chọn Đã Lưu
                     </button>
-                    <button id="btnPlayEgo" class="btn" style="padding: 12px; font-size: 0.9rem; justify-content: center; background: #9b30ff; color: #fff;">
+                    <button id="btnPlayEgo" class="btn"
+                        style="padding: 12px; font-size: 0.9rem; justify-content: center; background: #9b30ff; color: #fff;">
                         🟣 Vegeta Ultra Ego (Aura tím)
                     </button>
-                    <button id="btnPlayGoku" class="btn" style="padding: 12px; font-size: 0.9rem; justify-content: center; background: #e0e0e0; color: #000;">
+                    <button id="btnPlayGoku" class="btn"
+                        style="padding: 12px; font-size: 0.9rem; justify-content: center; background: #e0e0e0; color: #000;">
                         ⚪ Goku Ultra Instinct (Vô cực)
                     </button>
-                    <button id="btnPlayKitty" class="btn" style="padding: 12px; font-size: 0.9rem; justify-content: center; background: #ff69b4; color: #fff;">
+                    <button id="btnPlayKitty" class="btn"
+                        style="padding: 12px; font-size: 0.9rem; justify-content: center; background: #ff69b4; color: #fff;">
                         🐱 Mèo Curious Kitty
                     </button>
-                    <button id="btnPlayW78" class="btn" style="padding: 12px; font-size: 0.9rem; justify-content: center; background: #00e5ff; color: #000;">
+                    <button id="btnPlayW78" class="btn"
+                        style="padding: 12px; font-size: 0.9rem; justify-content: center; background: #00e5ff; color: #000;">
                         ✨ Hiệu ứng w78 Hologram
                     </button>
-                    <button id="btnPlayPikachu" class="btn" style="padding: 12px; font-size: 0.9rem; justify-content: center; background: #eab308; color: #000;">
+                    <button id="btnPlayPikachu" class="btn"
+                        style="padding: 12px; font-size: 0.9rem; justify-content: center; background: #eab308; color: #000;">
                         ⚡ Pikachu Điện
                     </button>
-                    <button id="btnSwitchPaint" class="btn btn-secondary" style="padding: 12px; font-size: 0.9rem; justify-content: center;">
+                    <button id="btnSwitchPaint" class="btn btn-secondary"
+                        style="padding: 12px; font-size: 0.9rem; justify-content: center;">
                         🎨 Trở về Chế độ Bảng vẽ (Paint)
                     </button>
                 </div>
             </div>
 
-                        <!-- FPS Booster & Tăng tốc độ chuyển động -->
-            <div style="background: var(--bg-card); padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+            <!-- FPS Booster & Tăng tốc độ chuyển động -->
+            <div
+                style="background: var(--bg-card); padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px;">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
                     <div>
-                        <strong style="font-size: 0.85rem; color: var(--text-main);">⚡ Tốc độ khung hình &amp; FPS Booster:</strong>
-                        <div style="font-size: 0.75rem; color: var(--text-dim);">Phần cứng SPI 40MHz &amp; DMA kép siêu mượt</div>
+                        <strong style="font-size: 0.85rem; color: var(--text-main);">⚡ Tốc độ khung hình &amp; FPS
+                            Booster:</strong>
+                        <div style="font-size: 0.75rem; color: var(--text-dim);">Phần cứng SPI 40MHz &amp; DMA kép siêu
+                            mượt</div>
                     </div>
-                    <span id="fpsBadge" style="font-size: 0.75rem; background: rgba(0,210,106,0.15); color: #00d26a; padding: 2px 8px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(0,210,106,0.3);">60 FPS</span>
+                    <span id="fpsBadge"
+                        style="font-size: 0.75rem; background: rgba(0,210,106,0.15); color: #00d26a; padding: 2px 8px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(0,210,106,0.3);">60
+                        FPS</span>
                 </div>
                 <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-                    <button class="btn btn-fps" data-fps="0" style="padding: 6px 12px; font-size: 0.8rem; background: #ff4757; color: #fff; font-weight: bold;">🚀 Max Turbo (~80 FPS)</button>
-                    <button class="btn btn-fps active" data-fps="60" style="padding: 6px 12px; font-size: 0.8rem; font-weight: bold;">⚡ 60 FPS (Mượt mà)</button>
-                    <button class="btn btn-fps btn-secondary" data-fps="50" style="padding: 6px 12px; font-size: 0.8rem;">🎯 50 FPS</button>
-                    <button class="btn btn-fps btn-secondary" data-fps="30" style="padding: 6px 12px; font-size: 0.8rem;">🎬 30 FPS</button>
-                    <button class="btn btn-fps btn-secondary" data-fps="-1" style="padding: 6px 12px; font-size: 0.8rem;">⏱️ Gốc (1x)</button>
-                    <button class="btn btn-fps btn-secondary" data-fps="-2" style="padding: 6px 12px; font-size: 0.8rem;">⏩ 1.5x</button>
-                    <button class="btn btn-fps btn-secondary" data-fps="-3" style="padding: 6px 12px; font-size: 0.8rem;">⏩ 2.0x</button>
+                    <button class="btn btn-fps" data-fps="0"
+                        style="padding: 6px 12px; font-size: 0.8rem; background: #ff4757; color: #fff; font-weight: bold;">🚀
+                        Max Turbo (~80 FPS)</button>
+                    <button class="btn btn-fps active" data-fps="60"
+                        style="padding: 6px 12px; font-size: 0.8rem; font-weight: bold;">⚡ 60 FPS (Mượt mà)</button>
+                    <button class="btn btn-fps btn-secondary" data-fps="50"
+                        style="padding: 6px 12px; font-size: 0.8rem;">🎯 50 FPS</button>
+                    <button class="btn btn-fps btn-secondary" data-fps="30"
+                        style="padding: 6px 12px; font-size: 0.8rem;">🎬 30 FPS</button>
+                    <button class="btn btn-fps btn-secondary" data-fps="-1"
+                        style="padding: 6px 12px; font-size: 0.8rem;">⏱️ Gốc (1x)</button>
+                    <button class="btn btn-fps btn-secondary" data-fps="-2"
+                        style="padding: 6px 12px; font-size: 0.8rem;">⏩ 1.5x</button>
+                    <button class="btn btn-fps btn-secondary" data-fps="-3"
+                        style="padding: 6px 12px; font-size: 0.8rem;">⏩ 2.0x</button>
                 </div>
             </div>
 
             <!-- Hệ màu màn hình (Sửa lệch màu Đỏ / Xanh) -->
-            <div style="background: var(--bg-card); padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div
+                style="background: var(--bg-card); padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
                 <div>
-                    <strong style="font-size: 0.85rem; color: var(--text-main);">🎨 Hệ màu màn hình (Sửa lệch màu Đỏ/Xanh):</strong>
-                    <div style="font-size: 0.75rem; color: var(--text-dim);" id="colorOrderDesc">Đang dùng: RGB (Chuẩn RGB - Đỏ = Đỏ, Xanh = Xanh)</div>
+                    <strong style="font-size: 0.85rem; color: var(--text-main);">🎨 Hệ màu màn hình (Sửa lệch màu
+                        Đỏ/Xanh):</strong>
+                    <div style="font-size: 0.75rem; color: var(--text-dim);" id="colorOrderDesc">Đang dùng: RGB (Chuẩn
+                        RGB - Đỏ = Đỏ, Xanh = Xanh)</div>
                 </div>
-                <button id="btnToggleColorOrder" class="btn" style="padding: 6px 14px; font-size: 0.8rem; background: #3b82f6; color: #fff; font-weight: bold;">🔄 Đổi sang BGR</button>
+                <button id="btnToggleColorOrder" class="btn"
+                    style="padding: 6px 14px; font-size: 0.8rem; background: #3b82f6; color: #fff; font-weight: bold;">🔄
+                    Đổi sang BGR</button>
             </div>
 
             <!-- Căn chỉnh vị trí hiển thị (Tránh bị cuộn xuống) -->
-            <div style="background: var(--bg-card); padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div
+                style="background: var(--bg-card); padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
                 <div>
-                    <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">📐 Căn vị trí hiển thị (Tránh bị cuộn / lệch khung):</div>
-                    <div style="font-size: 0.75rem; color: var(--text-dim);">Khớp chuẩn với lăng kính hologram của bạn</div>
+                    <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">📐 Căn vị trí hiển thị
+                        (Tránh bị cuộn / lệch khung):</div>
+                    <div style="font-size: 0.75rem; color: var(--text-dim);">Khớp chuẩn với lăng kính hologram của bạn
+                    </div>
                 </div>
                 <div style="display: flex; gap: 6px;">
-                    <button id="btnAlignTop" class="btn active" style="padding: 6px 12px; font-size: 0.8rem;">📌 Sát mép trên (y=0)</button>
-                    <button id="btnAlignCenter" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;">⚖️ Căn giữa (y=40)</button>
+                    <button id="btnAlignTop" class="btn active" style="padding: 6px 12px; font-size: 0.8rem;">📌 Sát mép
+                        trên (y=0)</button>
+                    <button id="btnAlignCenter" class="btn btn-secondary"
+                        style="padding: 6px 12px; font-size: 0.8rem;">⚖️ Căn giữa (y=40)</button>
                 </div>
             </div>
 
-            <div style="background: var(--bg-card); padding: 14px; border-radius: 8px; border: 1px solid var(--border);">
+            <div
+                style="background: var(--bg-card); padding: 14px; border-radius: 8px; border: 1px solid var(--border);">
                 <strong style="font-size: 0.85rem; color: var(--text-main);">💡 Lưu ý về ảnh động GIF Hologram:</strong>
-                <ul style="font-size: 0.8rem; color: var(--text-dim); margin-top: 8px; padding-left: 18px; line-height: 1.6;">
-                    <li>Mỗi khi chọn hoặc úp GIF mới, hệ thống sẽ tự động xóa sạch màn hình cũ trước khi phát hoạt ảnh mới để không bao giờ bị trùng đè ảnh.</li>
-                    <li>Màu đen (#000000) trên màn hình sẽ biến mất hoàn toàn khi chiếu qua lăng kính mica, tạo hiệu ứng vật thể 3D bay lơ lửng.</li>
+                <ul
+                    style="font-size: 0.8rem; color: var(--text-dim); margin-top: 8px; padding-left: 18px; line-height: 1.6;">
+                    <li>Mỗi khi chọn hoặc úp GIF mới, hệ thống sẽ tự động xóa sạch màn hình cũ trước khi phát hoạt ảnh
+                        mới để không bao giờ bị trùng đè ảnh.</li>
+                    <li>Màu đen (#000000) trên màn hình sẽ biến mất hoàn toàn khi chiếu qua lăng kính mica, tạo hiệu ứng
+                        vật thể 3D bay lơ lửng.</li>
                 </ul>
             </div>
         </div>
     </div>
-<!-- TAB 4: REMOTE WAN GUIDE -->
+    <!-- TAB 4: REMOTE WAN GUIDE -->
     <div id="remoteTab" class="main-container" style="display: none;">
         <div class="card" style="width: 100%; display: flex; flex-direction: column; gap: 14px;">
             <div style="border-bottom: 1px solid var(--border); padding-bottom: 10px;">
-                <h2 style="font-size: 1.1rem; color: var(--accent);">🌐 Hướng dẫn vẽ từ xa qua 4G (Không cần máy tính / VPS)</h2>
-                <p style="font-size: 0.8rem; color: var(--text-dim);">Công nghệ Cloud Broker miễn phí của HiveMQ giúp bạn ở bất kỳ đâu trên thế giới cũng điều khiển được màn hình ở nhà.</p>
+                <h2 style="font-size: 1.1rem; color: var(--accent);">🌐 Hướng dẫn vẽ từ xa qua 4G (Không cần máy tính /
+                    VPS)</h2>
+                <p style="font-size: 0.8rem; color: var(--text-dim);">Công nghệ Cloud Broker miễn phí của HiveMQ giúp
+                    bạn ở bất kỳ đâu trên thế giới cũng điều khiển được màn hình ở nhà.</p>
             </div>
 
             <div style="display: flex; flex-direction: column; gap: 12px; font-size: 0.85rem; line-height: 1.6;">
-                <div style="background: var(--bg-card); padding: 12px 16px; border-radius: 8px; border-left: 4px solid var(--accent);">
-                    <strong style="color: var(--accent); font-size: 0.95rem;">Bước 1: Cắm sạc ESP32 ở nhà</strong>
-                    <p style="color: var(--text-dim); margin-top: 4px;">Chỉ cần cắm nguồn 5V cho ESP32 và đảm bảo ESP32 đã kết nối Wi-Fi nhà. Màn hình TFT sẽ hiện dòng chữ màu vàng: <b>MÃ KẾT NỐI 4G: HOLO-FD9C</b>.</p>
+                <div
+                    style="background: var(--bg-card); padding: 12px 16px; border-radius: 8px; border-left: 4px solid var(--accent);">
+                    <strong style="color: var(--accent); font-size: 0.95rem;">Bước 1: Cắm nguồn Cube ở nhà</strong>
+                    <p style="color: var(--text-dim); margin-top: 4px;">Chỉ cần cắm nguồn 5V cho Cube và đảm bảo Cube đã
+                        kết nối Wi-Fi nhà. Màn hình TFT sẽ hiện dòng chữ màu vàng: <b>MÃ KẾT NỐI 4G: HOLO-FD9C</b>.</p>
                 </div>
 
-                <div style="background: var(--bg-card); padding: 12px 16px; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                <div
+                    style="background: var(--bg-card); padding: 12px 16px; border-radius: 8px; border-left: 4px solid #3b82f6;">
                     <strong style="color: #60a5fa; font-size: 0.95rem;">Bước 2: Mở Web trên điện thoại dùng 4G</strong>
-                    <p style="color: var(--text-dim); margin-top: 4px;">Mở trang web này trên điện thoại (ngoài đường, cơ quan...). Ở thanh kết nối trên cùng, chọn <b>🌐 Cloud 4G (HiveMQ)</b> và gõ đúng mã thiết bị (Ví dụ: <code>HOLO-FD9C</code>).</p>
+                    <p style="color: var(--text-dim); margin-top: 4px;">Mở trang web này trên điện thoại (ngoài đường,
+                        cơ quan...). Ở thanh kết nối trên cùng, chọn <b>🌐 Cloud 4G (HiveMQ)</b> và gõ đúng mã thiết bị
+                        (Ví dụ: <code>HOLO-FD9C</code>).</p>
                 </div>
 
-                <div style="background: var(--bg-card); padding: 12px 16px; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                <div
+                    style="background: var(--bg-card); padding: 12px 16px; border-radius: 8px; border-left: 4px solid #f59e0b;">
                     <strong style="color: #fbbf24; font-size: 0.95rem;">Bước 3: Bấm [Kết nối] và vẽ ngay!</strong>
-                    <p style="color: var(--text-dim); margin-top: 4px;">Khi nút chuyển thành <b>Cloud: HOLO-FD9C</b> màu xanh, bạn có thể vẽ nét trực tiếp hoặc cắt ảnh gửi về nhà tức thì!</p>
+                    <p style="color: var(--text-dim); margin-top: 4px;">Khi nút chuyển thành <b>Cloud: HOLO-FD9C</b> màu
+                        xanh, bạn có thể vẽ nét trực tiếp hoặc cắt ảnh gửi về nhà tức thì!</p>
                 </div>
             </div>
         </div>
     </div>
-<!-- Log tin nhắn WebSocket -->
+    <!-- Log tin nhắn WebSocket -->
     <div class="card" style="width: 100%; max-width: 900px; margin-top: 14px; padding: 10px 14px;">
-        <div style="font-size: 0.75rem; color: var(--text-dim); font-weight: 700; margin-bottom: 4px;">NHẬT KÝ HỆ THỐNG</div>
-        <div class="log-box" id="logBox">Hệ thống sẵn sàng. Vui lòng kết nối WebSocket tới ESP32...</div>
+        <div style="font-size: 0.75rem; color: var(--text-dim); font-weight: 700; margin-bottom: 4px;">NHẬT KÝ HỆ THỐNG
+        </div>
+        <div class="log-box" id="logBox">Hệ thống sẵn sàng. Vui lòng kết nối tới Cube...</div>
     </div>
 
     <script>
         /* OMG_INLINE_START */
         if (typeof GifWriter === "undefined") {
-"use strict";
-function GifWriter(buf, width, height, gopts) {
-  var p = 0;
-  var gopts = gopts === undefined ? { } : gopts;
-  var loop_count = gopts.loop === undefined ? null : gopts.loop;
-  var global_palette = gopts.palette === undefined ? null : gopts.palette;
-  if (width <= 0 || height <= 0 || width > 65535 || height > 65535)
-    throw new Error("Width/Height invalid.");
-  function check_palette_and_num_colors(palette) {
-    var num_colors = palette.length;
-    if (num_colors < 2 || num_colors > 256 ||  num_colors & (num_colors-1)) {
-      throw new Error(
-          "Invalid code/color length, must be power of 2 and 2 .. 256.");
-    }
-    return num_colors;
-  }
-  buf[p++] = 0x47; buf[p++] = 0x49; buf[p++] = 0x46;  
-  buf[p++] = 0x38; buf[p++] = 0x39; buf[p++] = 0x61;  
-  var gp_num_colors_pow2 = 0;
-  var background = 0;
-  if (global_palette !== null) {
-    var gp_num_colors = check_palette_and_num_colors(global_palette);
-    while (gp_num_colors >>= 1) ++gp_num_colors_pow2;
-    gp_num_colors = 1 << gp_num_colors_pow2;
-    --gp_num_colors_pow2;
-    if (gopts.background !== undefined) {
-      background = gopts.background;
-      if (background >= gp_num_colors)
-        throw new Error("Background index out of range.");
-      if (background === 0)
-        throw new Error("Background index explicitly passed as 0.");
-    }
-  }
-  buf[p++] = width & 0xff; buf[p++] = width >> 8 & 0xff;
-  buf[p++] = height & 0xff; buf[p++] = height >> 8 & 0xff;
-  buf[p++] = (global_palette !== null ? 0x80 : 0) |  
-             gp_num_colors_pow2;  
-  buf[p++] = background;  
-  buf[p++] = 0;  
-  if (global_palette !== null) {
-    for (var i = 0, il = global_palette.length; i < il; ++i) {
-      var rgb = global_palette[i];
-      buf[p++] = rgb >> 16 & 0xff;
-      buf[p++] = rgb >> 8 & 0xff;
-      buf[p++] = rgb & 0xff;
-    }
-  }
-  if (loop_count !== null) {  
-    if (loop_count < 0 || loop_count > 65535)
-      throw new Error("Loop count invalid.")
-    buf[p++] = 0x21; buf[p++] = 0xff; buf[p++] = 0x0b;
-    buf[p++] = 0x4e; buf[p++] = 0x45; buf[p++] = 0x54; buf[p++] = 0x53;
-    buf[p++] = 0x43; buf[p++] = 0x41; buf[p++] = 0x50; buf[p++] = 0x45;
-    buf[p++] = 0x32; buf[p++] = 0x2e; buf[p++] = 0x30;
-    buf[p++] = 0x03; buf[p++] = 0x01;
-    buf[p++] = loop_count & 0xff; buf[p++] = loop_count >> 8 & 0xff;
-    buf[p++] = 0x00;  
-  }
-  var ended = false;
-  this.addFrame = function(x, y, w, h, indexed_pixels, opts) {
-    if (ended === true) { --p; ended = false; }  
-    opts = opts === undefined ? { } : opts;
-    if (x < 0 || y < 0 || x > 65535 || y > 65535)
-      throw new Error("x/y invalid.")
-    if (w <= 0 || h <= 0 || w > 65535 || h > 65535)
-      throw new Error("Width/Height invalid.")
-    if (indexed_pixels.length < w * h)
-      throw new Error("Not enough pixels for the frame size.");
-    var using_local_palette = true;
-    var palette = opts.palette;
-    if (palette === undefined || palette === null) {
-      using_local_palette = false;
-      palette = global_palette;
-    }
-    if (palette === undefined || palette === null)
-      throw new Error("Must supply either a local or global palette.");
-    var num_colors = check_palette_and_num_colors(palette);
-    var min_code_size = 0;
-    while (num_colors >>= 1) ++min_code_size;
-    num_colors = 1 << min_code_size;  
-    var delay = opts.delay === undefined ? 0 : opts.delay;
-    var disposal = opts.disposal === undefined ? 0 : opts.disposal;
-    if (disposal < 0 || disposal > 3)  
-      throw new Error("Disposal out of range.");
-    var use_transparency = false;
-    var transparent_index = 0;
-    if (opts.transparent !== undefined && opts.transparent !== null) {
-      use_transparency = true;
-      transparent_index = opts.transparent;
-      if (transparent_index < 0 || transparent_index >= num_colors)
-        throw new Error("Transparent color index.");
-    }
-    if (disposal !== 0 || use_transparency || delay !== 0) {
-      buf[p++] = 0x21; buf[p++] = 0xf9;  
-      buf[p++] = 4;  
-      buf[p++] = disposal << 2 | (use_transparency === true ? 1 : 0);
-      buf[p++] = delay & 0xff; buf[p++] = delay >> 8 & 0xff;
-      buf[p++] = transparent_index;  
-      buf[p++] = 0;  
-    }
-    buf[p++] = 0x2c;  
-    buf[p++] = x & 0xff; buf[p++] = x >> 8 & 0xff;  
-    buf[p++] = y & 0xff; buf[p++] = y >> 8 & 0xff;  
-    buf[p++] = w & 0xff; buf[p++] = w >> 8 & 0xff;
-    buf[p++] = h & 0xff; buf[p++] = h >> 8 & 0xff;
-    buf[p++] = using_local_palette === true ? (0x80 | (min_code_size-1)) : 0;
-    if (using_local_palette === true) {
-      for (var i = 0, il = palette.length; i < il; ++i) {
-        var rgb = palette[i];
-        buf[p++] = rgb >> 16 & 0xff;
-        buf[p++] = rgb >> 8 & 0xff;
-        buf[p++] = rgb & 0xff;
-      }
-    }
-    p = GifWriterOutputLZWCodeStream(
-            buf, p, min_code_size < 2 ? 2 : min_code_size, indexed_pixels);
-    return p;
-  };
-  this.end = function() {
-    if (ended === false) {
-      buf[p++] = 0x3b;  
-      ended = true;
-    }
-    return p;
-  };
-  this.getOutputBuffer = function() { return buf; };
-  this.setOutputBuffer = function(v) { buf = v; };
-  this.getOutputBufferPosition = function() { return p; };
-  this.setOutputBufferPosition = function(v) { p = v; };
-}
-function GifWriterOutputLZWCodeStream(buf, p, min_code_size, index_stream) {
-  buf[p++] = min_code_size;
-  var cur_subblock = p++;  
-  var clear_code = 1 << min_code_size;
-  var code_mask = clear_code - 1;
-  var eoi_code = clear_code + 1;
-  var next_code = eoi_code + 1;
-  var cur_code_size = min_code_size + 1;  
-  var cur_shift = 0;
-  var cur = 0;
-  function emit_bytes_to_buffer(bit_block_size) {
-    while (cur_shift >= bit_block_size) {
-      buf[p++] = cur & 0xff;
-      cur >>= 8; cur_shift -= 8;
-      if (p === cur_subblock + 256) {  
-        buf[cur_subblock] = 255;
-        cur_subblock = p++;
-      }
-    }
-  }
-  function emit_code(c) {
-    cur |= c << cur_shift;
-    cur_shift += cur_code_size;
-    emit_bytes_to_buffer(8);
-  }
-  var ib_code = index_stream[0] & code_mask;  
-  var code_table = { };  
-  emit_code(clear_code);  
-  for (var i = 1, il = index_stream.length; i < il; ++i) {
-    var k = index_stream[i] & code_mask;
-    var cur_key = ib_code << 8 | k;  
-    var cur_code = code_table[cur_key];  
-    if (cur_code === undefined) {  
-      cur |= ib_code << cur_shift;
-      cur_shift += cur_code_size;
-      while (cur_shift >= 8) {
-        buf[p++] = cur & 0xff;
-        cur >>= 8; cur_shift -= 8;
-        if (p === cur_subblock + 256) {  
-          buf[cur_subblock] = 255;
-          cur_subblock = p++;
-        }
-      }
-      if (next_code === 4096) {  
-        emit_code(clear_code);
-        next_code = eoi_code + 1;
-        cur_code_size = min_code_size + 1;
-        code_table = { };
-      } else {  
-        if (next_code >= (1 << cur_code_size)) ++cur_code_size;
-        code_table[cur_key] = next_code++;  
-      }
-      ib_code = k;  
-    } else {
-      ib_code = cur_code;  
-    }
-  }
-  emit_code(ib_code);  
-  emit_code(eoi_code);  
-  emit_bytes_to_buffer(1);
-  if (cur_subblock + 1 === p) {  
-    buf[cur_subblock] = 0;
-  } else {  
-    buf[cur_subblock] = p - cur_subblock - 1;
-    buf[p++] = 0;
-  }
-  return p;
-}
-function GifReader(buf) {
-  var p = 0;
-  if (buf[p++] !== 0x47 ||            buf[p++] !== 0x49 || buf[p++] !== 0x46 ||
-      buf[p++] !== 0x38 || (buf[p++]+1 & 0xfd) !== 0x38 || buf[p++] !== 0x61) {
-    throw new Error("Invalid GIF 87a/89a header.");
-  }
-  var width = buf[p++] | buf[p++] << 8;
-  var height = buf[p++] | buf[p++] << 8;
-  var pf0 = buf[p++];  
-  var global_palette_flag = pf0 >> 7;
-  var num_global_colors_pow2 = pf0 & 0x7;
-  var num_global_colors = 1 << (num_global_colors_pow2 + 1);
-  var background = buf[p++];
-  buf[p++];  
-  var global_palette_offset = null;
-  var global_palette_size   = null;
-  if (global_palette_flag) {
-    global_palette_offset = p;
-    global_palette_size = num_global_colors;
-    p += num_global_colors * 3;  
-  }
-  var no_eof = true;
-  var frames = [ ];
-  var delay = 0;
-  var transparent_index = null;
-  var disposal = 0;  
-  var loop_count = null;
-  this.width = width;
-  this.height = height;
-  while (no_eof && p < buf.length) {
-    switch (buf[p++]) {
-      case 0x21:  
-        switch (buf[p++]) {
-          case 0xff:  
-            if (buf[p   ] !== 0x0b ||  
-                buf[p+1 ] == 0x4e && buf[p+2 ] == 0x45 && buf[p+3 ] == 0x54 &&
-                buf[p+4 ] == 0x53 && buf[p+5 ] == 0x43 && buf[p+6 ] == 0x41 &&
-                buf[p+7 ] == 0x50 && buf[p+8 ] == 0x45 && buf[p+9 ] == 0x32 &&
-                buf[p+10] == 0x2e && buf[p+11] == 0x30 &&
-                buf[p+12] == 0x03 && buf[p+13] == 0x01 && buf[p+16] == 0) {
-              p += 14;
-              loop_count = buf[p++] | buf[p++] << 8;
-              p++;  
-            } else {  
-              p += 12;
-              while (true) {  
-                var block_size = buf[p++];
-                if (!(block_size >= 0)) throw Error("Invalid block size");
-                if (block_size === 0) break;  
-                p += block_size;
-              }
+            "use strict";
+            function GifWriter(buf, width, height, gopts) {
+                var p = 0;
+                var gopts = gopts === undefined ? {} : gopts;
+                var loop_count = gopts.loop === undefined ? null : gopts.loop;
+                var global_palette = gopts.palette === undefined ? null : gopts.palette;
+                if (width <= 0 || height <= 0 || width > 65535 || height > 65535)
+                    throw new Error("Width/Height invalid.");
+                function check_palette_and_num_colors(palette) {
+                    var num_colors = palette.length;
+                    if (num_colors < 2 || num_colors > 256 || num_colors & (num_colors - 1)) {
+                        throw new Error(
+                            "Invalid code/color length, must be power of 2 and 2 .. 256.");
+                    }
+                    return num_colors;
+                }
+                buf[p++] = 0x47; buf[p++] = 0x49; buf[p++] = 0x46;
+                buf[p++] = 0x38; buf[p++] = 0x39; buf[p++] = 0x61;
+                var gp_num_colors_pow2 = 0;
+                var background = 0;
+                if (global_palette !== null) {
+                    var gp_num_colors = check_palette_and_num_colors(global_palette);
+                    while (gp_num_colors >>= 1) ++gp_num_colors_pow2;
+                    gp_num_colors = 1 << gp_num_colors_pow2;
+                    --gp_num_colors_pow2;
+                    if (gopts.background !== undefined) {
+                        background = gopts.background;
+                        if (background >= gp_num_colors)
+                            throw new Error("Background index out of range.");
+                        if (background === 0)
+                            throw new Error("Background index explicitly passed as 0.");
+                    }
+                }
+                buf[p++] = width & 0xff; buf[p++] = width >> 8 & 0xff;
+                buf[p++] = height & 0xff; buf[p++] = height >> 8 & 0xff;
+                buf[p++] = (global_palette !== null ? 0x80 : 0) |
+                    gp_num_colors_pow2;
+                buf[p++] = background;
+                buf[p++] = 0;
+                if (global_palette !== null) {
+                    for (var i = 0, il = global_palette.length; i < il; ++i) {
+                        var rgb = global_palette[i];
+                        buf[p++] = rgb >> 16 & 0xff;
+                        buf[p++] = rgb >> 8 & 0xff;
+                        buf[p++] = rgb & 0xff;
+                    }
+                }
+                if (loop_count !== null) {
+                    if (loop_count < 0 || loop_count > 65535)
+                        throw new Error("Loop count invalid.")
+                    buf[p++] = 0x21; buf[p++] = 0xff; buf[p++] = 0x0b;
+                    buf[p++] = 0x4e; buf[p++] = 0x45; buf[p++] = 0x54; buf[p++] = 0x53;
+                    buf[p++] = 0x43; buf[p++] = 0x41; buf[p++] = 0x50; buf[p++] = 0x45;
+                    buf[p++] = 0x32; buf[p++] = 0x2e; buf[p++] = 0x30;
+                    buf[p++] = 0x03; buf[p++] = 0x01;
+                    buf[p++] = loop_count & 0xff; buf[p++] = loop_count >> 8 & 0xff;
+                    buf[p++] = 0x00;
+                }
+                var ended = false;
+                this.addFrame = function (x, y, w, h, indexed_pixels, opts) {
+                    if (ended === true) { --p; ended = false; }
+                    opts = opts === undefined ? {} : opts;
+                    if (x < 0 || y < 0 || x > 65535 || y > 65535)
+                        throw new Error("x/y invalid.")
+                    if (w <= 0 || h <= 0 || w > 65535 || h > 65535)
+                        throw new Error("Width/Height invalid.")
+                    if (indexed_pixels.length < w * h)
+                        throw new Error("Not enough pixels for the frame size.");
+                    var using_local_palette = true;
+                    var palette = opts.palette;
+                    if (palette === undefined || palette === null) {
+                        using_local_palette = false;
+                        palette = global_palette;
+                    }
+                    if (palette === undefined || palette === null)
+                        throw new Error("Must supply either a local or global palette.");
+                    var num_colors = check_palette_and_num_colors(palette);
+                    var min_code_size = 0;
+                    while (num_colors >>= 1) ++min_code_size;
+                    num_colors = 1 << min_code_size;
+                    var delay = opts.delay === undefined ? 0 : opts.delay;
+                    var disposal = opts.disposal === undefined ? 0 : opts.disposal;
+                    if (disposal < 0 || disposal > 3)
+                        throw new Error("Disposal out of range.");
+                    var use_transparency = false;
+                    var transparent_index = 0;
+                    if (opts.transparent !== undefined && opts.transparent !== null) {
+                        use_transparency = true;
+                        transparent_index = opts.transparent;
+                        if (transparent_index < 0 || transparent_index >= num_colors)
+                            throw new Error("Transparent color index.");
+                    }
+                    if (disposal !== 0 || use_transparency || delay !== 0) {
+                        buf[p++] = 0x21; buf[p++] = 0xf9;
+                        buf[p++] = 4;
+                        buf[p++] = disposal << 2 | (use_transparency === true ? 1 : 0);
+                        buf[p++] = delay & 0xff; buf[p++] = delay >> 8 & 0xff;
+                        buf[p++] = transparent_index;
+                        buf[p++] = 0;
+                    }
+                    buf[p++] = 0x2c;
+                    buf[p++] = x & 0xff; buf[p++] = x >> 8 & 0xff;
+                    buf[p++] = y & 0xff; buf[p++] = y >> 8 & 0xff;
+                    buf[p++] = w & 0xff; buf[p++] = w >> 8 & 0xff;
+                    buf[p++] = h & 0xff; buf[p++] = h >> 8 & 0xff;
+                    buf[p++] = using_local_palette === true ? (0x80 | (min_code_size - 1)) : 0;
+                    if (using_local_palette === true) {
+                        for (var i = 0, il = palette.length; i < il; ++i) {
+                            var rgb = palette[i];
+                            buf[p++] = rgb >> 16 & 0xff;
+                            buf[p++] = rgb >> 8 & 0xff;
+                            buf[p++] = rgb & 0xff;
+                        }
+                    }
+                    p = GifWriterOutputLZWCodeStream(
+                        buf, p, min_code_size < 2 ? 2 : min_code_size, indexed_pixels);
+                    return p;
+                };
+                this.end = function () {
+                    if (ended === false) {
+                        buf[p++] = 0x3b;
+                        ended = true;
+                    }
+                    return p;
+                };
+                this.getOutputBuffer = function () { return buf; };
+                this.setOutputBuffer = function (v) { buf = v; };
+                this.getOutputBufferPosition = function () { return p; };
+                this.setOutputBufferPosition = function (v) { p = v; };
             }
-            break;
-          case 0xf9:  
-            if (buf[p++] !== 0x4 || buf[p+4] !== 0)
-              throw new Error("Invalid graphics extension block.");
-            var pf1 = buf[p++];
-            delay = buf[p++] | buf[p++] << 8;
-            transparent_index = buf[p++];
-            if ((pf1 & 1) === 0) transparent_index = null;
-            disposal = pf1 >> 2 & 0x7;
-            p++;  
-            break;
-          case 0xfe:  
-            while (true) {  
-              var block_size = buf[p++];
-              if (!(block_size >= 0)) throw Error("Invalid block size");
-              if (block_size === 0) break;  
-              p += block_size;
+            function GifWriterOutputLZWCodeStream(buf, p, min_code_size, index_stream) {
+                buf[p++] = min_code_size;
+                var cur_subblock = p++;
+                var clear_code = 1 << min_code_size;
+                var code_mask = clear_code - 1;
+                var eoi_code = clear_code + 1;
+                var next_code = eoi_code + 1;
+                var cur_code_size = min_code_size + 1;
+                var cur_shift = 0;
+                var cur = 0;
+                function emit_bytes_to_buffer(bit_block_size) {
+                    while (cur_shift >= bit_block_size) {
+                        buf[p++] = cur & 0xff;
+                        cur >>= 8; cur_shift -= 8;
+                        if (p === cur_subblock + 256) {
+                            buf[cur_subblock] = 255;
+                            cur_subblock = p++;
+                        }
+                    }
+                }
+                function emit_code(c) {
+                    cur |= c << cur_shift;
+                    cur_shift += cur_code_size;
+                    emit_bytes_to_buffer(8);
+                }
+                var ib_code = index_stream[0] & code_mask;
+                var code_table = {};
+                emit_code(clear_code);
+                for (var i = 1, il = index_stream.length; i < il; ++i) {
+                    var k = index_stream[i] & code_mask;
+                    var cur_key = ib_code << 8 | k;
+                    var cur_code = code_table[cur_key];
+                    if (cur_code === undefined) {
+                        cur |= ib_code << cur_shift;
+                        cur_shift += cur_code_size;
+                        while (cur_shift >= 8) {
+                            buf[p++] = cur & 0xff;
+                            cur >>= 8; cur_shift -= 8;
+                            if (p === cur_subblock + 256) {
+                                buf[cur_subblock] = 255;
+                                cur_subblock = p++;
+                            }
+                        }
+                        if (next_code === 4096) {
+                            emit_code(clear_code);
+                            next_code = eoi_code + 1;
+                            cur_code_size = min_code_size + 1;
+                            code_table = {};
+                        } else {
+                            if (next_code >= (1 << cur_code_size)) ++cur_code_size;
+                            code_table[cur_key] = next_code++;
+                        }
+                        ib_code = k;
+                    } else {
+                        ib_code = cur_code;
+                    }
+                }
+                emit_code(ib_code);
+                emit_code(eoi_code);
+                emit_bytes_to_buffer(1);
+                if (cur_subblock + 1 === p) {
+                    buf[cur_subblock] = 0;
+                } else {
+                    buf[cur_subblock] = p - cur_subblock - 1;
+                    buf[p++] = 0;
+                }
+                return p;
             }
-            break;
-          default:
-            throw new Error(
-                "Unknown graphic control label: 0x" + buf[p-1].toString(16));
-        }
-        break;
-      case 0x2c:  
-        var x = buf[p++] | buf[p++] << 8;
-        var y = buf[p++] | buf[p++] << 8;
-        var w = buf[p++] | buf[p++] << 8;
-        var h = buf[p++] | buf[p++] << 8;
-        var pf2 = buf[p++];
-        var local_palette_flag = pf2 >> 7;
-        var interlace_flag = pf2 >> 6 & 1;
-        var num_local_colors_pow2 = pf2 & 0x7;
-        var num_local_colors = 1 << (num_local_colors_pow2 + 1);
-        var palette_offset = global_palette_offset;
-        var palette_size = global_palette_size;
-        var has_local_palette = false;
-        if (local_palette_flag) {
-          var has_local_palette = true;
-          palette_offset = p;  
-          palette_size = num_local_colors;
-          p += num_local_colors * 3;  
-        }
-        var data_offset = p;
-        p++;  
-        while (true) {
-          var block_size = buf[p++];
-          if (!(block_size >= 0)) throw Error("Invalid block size");
-          if (block_size === 0) break;  
-          p += block_size;
-        }
-        frames.push({x: x, y: y, width: w, height: h,
-                     has_local_palette: has_local_palette,
-                     palette_offset: palette_offset,
-                     palette_size: palette_size,
-                     data_offset: data_offset,
-                     data_length: p - data_offset,
-                     transparent_index: transparent_index,
-                     interlaced: !!interlace_flag,
-                     delay: delay,
-                     disposal: disposal});
-        break;
-      case 0x3b:  
-        no_eof = false;
-        break;
-      default:
-        throw new Error("Unknown gif block: 0x" + buf[p-1].toString(16));
-        break;
-    }
-  }
-  this.numFrames = function() {
-    return frames.length;
-  };
-  this.loopCount = function() {
-    return loop_count;
-  };
-  this.frameInfo = function(frame_num) {
-    if (frame_num < 0 || frame_num >= frames.length)
-      throw new Error("Frame index out of range.");
-    return frames[frame_num];
-  }
-  this.decodeAndBlitFrameBGRA = function(frame_num, pixels) {
-    var frame = this.frameInfo(frame_num);
-    var num_pixels = frame.width * frame.height;
-    var index_stream = new Uint8Array(num_pixels);  
-    GifReaderLZWOutputIndexStream(
-        buf, frame.data_offset, index_stream, num_pixels);
-    var palette_offset = frame.palette_offset;
-    var trans = frame.transparent_index;
-    if (trans === null) trans = 256;
-    var framewidth  = frame.width;
-    var framestride = width - framewidth;
-    var xleft       = framewidth;  
-    var opbeg = ((frame.y * width) + frame.x) * 4;
-    var opend = ((frame.y + frame.height) * width + frame.x) * 4;
-    var op    = opbeg;
-    var scanstride = framestride * 4;
-    if (frame.interlaced === true) {
-      scanstride += width * 4 * 7;  
-    }
-    var interlaceskip = 8;  
-    for (var i = 0, il = index_stream.length; i < il; ++i) {
-      var index = index_stream[i];
-      if (xleft === 0) {  
-        op += scanstride;
-        xleft = framewidth;
-        if (op >= opend) { 
-          scanstride = framestride * 4 + width * 4 * (interlaceskip-1);
-          op = opbeg + (framewidth + framestride) * (interlaceskip << 1);
-          interlaceskip >>= 1;
-        }
-      }
-      if (index === trans) {
-        op += 4;
-      } else {
-        var r = buf[palette_offset + index * 3];
-        var g = buf[palette_offset + index * 3 + 1];
-        var b = buf[palette_offset + index * 3 + 2];
-        pixels[op++] = b;
-        pixels[op++] = g;
-        pixels[op++] = r;
-        pixels[op++] = 255;
-      }
-      --xleft;
-    }
-  };
-  this.decodeAndBlitFrameRGBA = function(frame_num, pixels) {
-    var frame = this.frameInfo(frame_num);
-    var num_pixels = frame.width * frame.height;
-    var index_stream = new Uint8Array(num_pixels);  
-    GifReaderLZWOutputIndexStream(
-        buf, frame.data_offset, index_stream, num_pixels);
-    var palette_offset = frame.palette_offset;
-    var trans = frame.transparent_index;
-    if (trans === null) trans = 256;
-    var framewidth  = frame.width;
-    var framestride = width - framewidth;
-    var xleft       = framewidth;  
-    var opbeg = ((frame.y * width) + frame.x) * 4;
-    var opend = ((frame.y + frame.height) * width + frame.x) * 4;
-    var op    = opbeg;
-    var scanstride = framestride * 4;
-    if (frame.interlaced === true) {
-      scanstride += width * 4 * 7;  
-    }
-    var interlaceskip = 8;  
-    for (var i = 0, il = index_stream.length; i < il; ++i) {
-      var index = index_stream[i];
-      if (xleft === 0) {  
-        op += scanstride;
-        xleft = framewidth;
-        if (op >= opend) { 
-          scanstride = framestride * 4 + width * 4 * (interlaceskip-1);
-          op = opbeg + (framewidth + framestride) * (interlaceskip << 1);
-          interlaceskip >>= 1;
-        }
-      }
-      if (index === trans) {
-        op += 4;
-      } else {
-        var r = buf[palette_offset + index * 3];
-        var g = buf[palette_offset + index * 3 + 1];
-        var b = buf[palette_offset + index * 3 + 2];
-        pixels[op++] = r;
-        pixels[op++] = g;
-        pixels[op++] = b;
-        pixels[op++] = 255;
-      }
-      --xleft;
-    }
-  };
-}
-function GifReaderLZWOutputIndexStream(code_stream, p, output, output_length) {
-  var min_code_size = code_stream[p++];
-  var clear_code = 1 << min_code_size;
-  var eoi_code = clear_code + 1;
-  var next_code = eoi_code + 1;
-  var cur_code_size = min_code_size + 1;  
-  var code_mask = (1 << cur_code_size) - 1;
-  var cur_shift = 0;
-  var cur = 0;
-  var op = 0;  
-  var subblock_size = code_stream[p++];
-  var code_table = new Int32Array(4096);  
-  var prev_code = null;  
-  while (true) {
-    while (cur_shift < 16) {
-      if (subblock_size === 0) break;  
-      cur |= code_stream[p++] << cur_shift;
-      cur_shift += 8;
-      if (subblock_size === 1) {  
-        subblock_size = code_stream[p++];  
-      } else {
-        --subblock_size;
-      }
-    }
-    if (cur_shift < cur_code_size)
-      break;
-    var code = cur & code_mask;
-    cur >>= cur_code_size;
-    cur_shift -= cur_code_size;
-    if (code === clear_code) {
-      next_code = eoi_code + 1;
-      cur_code_size = min_code_size + 1;
-      code_mask = (1 << cur_code_size) - 1;
-      prev_code = null;
-      continue;
-    } else if (code === eoi_code) {
-      break;
-    }
-    var chase_code = code < next_code ? code : prev_code;
-    var chase_length = 0;
-    var chase = chase_code;
-    while (chase > clear_code) {
-      chase = code_table[chase] >> 8;
-      ++chase_length;
-    }
-    var k = chase;
-    var op_end = op + chase_length + (chase_code !== code ? 1 : 0);
-    if (op_end > output_length) {
-      console.log("Warning, gif stream longer than expected.");
-      return;
-    }
-    output[op++] = k;
-    op += chase_length;
-    var b = op;  
-    if (chase_code !== code)  
-      output[op++] = k;
-    chase = chase_code;
-    while (chase_length--) {
-      chase = code_table[chase];
-      output[--b] = chase & 0xff;  
-      chase >>= 8;  
-    }
-    if (prev_code !== null && next_code < 4096) {
-      code_table[next_code++] = prev_code << 8 | k;
-      if (next_code >= code_mask+1 && cur_code_size < 12) {
-        ++cur_code_size;
-        code_mask = code_mask << 1 | 1;
-      }
-    }
-    prev_code = code;
-  }
-  if (op !== output_length) {
-    console.log("Warning, gif stream shorter than expected.");
-  }
-  return output;
-}
-try { exports.GifWriter = GifWriter; exports.GifReader = GifReader } catch(e) {}
-if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifReader = GifReader; }
+            function GifReader(buf) {
+                var p = 0;
+                if (buf[p++] !== 0x47 || buf[p++] !== 0x49 || buf[p++] !== 0x46 ||
+                    buf[p++] !== 0x38 || (buf[p++] + 1 & 0xfd) !== 0x38 || buf[p++] !== 0x61) {
+                    throw new Error("Invalid GIF 87a/89a header.");
+                }
+                var width = buf[p++] | buf[p++] << 8;
+                var height = buf[p++] | buf[p++] << 8;
+                var pf0 = buf[p++];
+                var global_palette_flag = pf0 >> 7;
+                var num_global_colors_pow2 = pf0 & 0x7;
+                var num_global_colors = 1 << (num_global_colors_pow2 + 1);
+                var background = buf[p++];
+                buf[p++];
+                var global_palette_offset = null;
+                var global_palette_size = null;
+                if (global_palette_flag) {
+                    global_palette_offset = p;
+                    global_palette_size = num_global_colors;
+                    p += num_global_colors * 3;
+                }
+                var no_eof = true;
+                var frames = [];
+                var delay = 0;
+                var transparent_index = null;
+                var disposal = 0;
+                var loop_count = null;
+                this.width = width;
+                this.height = height;
+                while (no_eof && p < buf.length) {
+                    switch (buf[p++]) {
+                        case 0x21:
+                            switch (buf[p++]) {
+                                case 0xff:
+                                    if (buf[p] !== 0x0b ||
+                                        buf[p + 1] == 0x4e && buf[p + 2] == 0x45 && buf[p + 3] == 0x54 &&
+                                        buf[p + 4] == 0x53 && buf[p + 5] == 0x43 && buf[p + 6] == 0x41 &&
+                                        buf[p + 7] == 0x50 && buf[p + 8] == 0x45 && buf[p + 9] == 0x32 &&
+                                        buf[p + 10] == 0x2e && buf[p + 11] == 0x30 &&
+                                        buf[p + 12] == 0x03 && buf[p + 13] == 0x01 && buf[p + 16] == 0) {
+                                        p += 14;
+                                        loop_count = buf[p++] | buf[p++] << 8;
+                                        p++;
+                                    } else {
+                                        p += 12;
+                                        while (true) {
+                                            var block_size = buf[p++];
+                                            if (!(block_size >= 0)) throw Error("Invalid block size");
+                                            if (block_size === 0) break;
+                                            p += block_size;
+                                        }
+                                    }
+                                    break;
+                                case 0xf9:
+                                    if (buf[p++] !== 0x4 || buf[p + 4] !== 0)
+                                        throw new Error("Invalid graphics extension block.");
+                                    var pf1 = buf[p++];
+                                    delay = buf[p++] | buf[p++] << 8;
+                                    transparent_index = buf[p++];
+                                    if ((pf1 & 1) === 0) transparent_index = null;
+                                    disposal = pf1 >> 2 & 0x7;
+                                    p++;
+                                    break;
+                                case 0xfe:
+                                    while (true) {
+                                        var block_size = buf[p++];
+                                        if (!(block_size >= 0)) throw Error("Invalid block size");
+                                        if (block_size === 0) break;
+                                        p += block_size;
+                                    }
+                                    break;
+                                default:
+                                    throw new Error(
+                                        "Unknown graphic control label: 0x" + buf[p - 1].toString(16));
+                            }
+                            break;
+                        case 0x2c:
+                            var x = buf[p++] | buf[p++] << 8;
+                            var y = buf[p++] | buf[p++] << 8;
+                            var w = buf[p++] | buf[p++] << 8;
+                            var h = buf[p++] | buf[p++] << 8;
+                            var pf2 = buf[p++];
+                            var local_palette_flag = pf2 >> 7;
+                            var interlace_flag = pf2 >> 6 & 1;
+                            var num_local_colors_pow2 = pf2 & 0x7;
+                            var num_local_colors = 1 << (num_local_colors_pow2 + 1);
+                            var palette_offset = global_palette_offset;
+                            var palette_size = global_palette_size;
+                            var has_local_palette = false;
+                            if (local_palette_flag) {
+                                var has_local_palette = true;
+                                palette_offset = p;
+                                palette_size = num_local_colors;
+                                p += num_local_colors * 3;
+                            }
+                            var data_offset = p;
+                            p++;
+                            while (true) {
+                                var block_size = buf[p++];
+                                if (!(block_size >= 0)) throw Error("Invalid block size");
+                                if (block_size === 0) break;
+                                p += block_size;
+                            }
+                            frames.push({
+                                x: x, y: y, width: w, height: h,
+                                has_local_palette: has_local_palette,
+                                palette_offset: palette_offset,
+                                palette_size: palette_size,
+                                data_offset: data_offset,
+                                data_length: p - data_offset,
+                                transparent_index: transparent_index,
+                                interlaced: !!interlace_flag,
+                                delay: delay,
+                                disposal: disposal
+                            });
+                            break;
+                        case 0x3b:
+                            no_eof = false;
+                            break;
+                        default:
+                            throw new Error("Unknown gif block: 0x" + buf[p - 1].toString(16));
+                            break;
+                    }
+                }
+                this.numFrames = function () {
+                    return frames.length;
+                };
+                this.loopCount = function () {
+                    return loop_count;
+                };
+                this.frameInfo = function (frame_num) {
+                    if (frame_num < 0 || frame_num >= frames.length)
+                        throw new Error("Frame index out of range.");
+                    return frames[frame_num];
+                }
+                this.decodeAndBlitFrameBGRA = function (frame_num, pixels) {
+                    var frame = this.frameInfo(frame_num);
+                    var num_pixels = frame.width * frame.height;
+                    var index_stream = new Uint8Array(num_pixels);
+                    GifReaderLZWOutputIndexStream(
+                        buf, frame.data_offset, index_stream, num_pixels);
+                    var palette_offset = frame.palette_offset;
+                    var trans = frame.transparent_index;
+                    if (trans === null) trans = 256;
+                    var framewidth = frame.width;
+                    var framestride = width - framewidth;
+                    var xleft = framewidth;
+                    var opbeg = ((frame.y * width) + frame.x) * 4;
+                    var opend = ((frame.y + frame.height) * width + frame.x) * 4;
+                    var op = opbeg;
+                    var scanstride = framestride * 4;
+                    if (frame.interlaced === true) {
+                        scanstride += width * 4 * 7;
+                    }
+                    var interlaceskip = 8;
+                    for (var i = 0, il = index_stream.length; i < il; ++i) {
+                        var index = index_stream[i];
+                        if (xleft === 0) {
+                            op += scanstride;
+                            xleft = framewidth;
+                            if (op >= opend) {
+                                scanstride = framestride * 4 + width * 4 * (interlaceskip - 1);
+                                op = opbeg + (framewidth + framestride) * (interlaceskip << 1);
+                                interlaceskip >>= 1;
+                            }
+                        }
+                        if (index === trans) {
+                            op += 4;
+                        } else {
+                            var r = buf[palette_offset + index * 3];
+                            var g = buf[palette_offset + index * 3 + 1];
+                            var b = buf[palette_offset + index * 3 + 2];
+                            pixels[op++] = b;
+                            pixels[op++] = g;
+                            pixels[op++] = r;
+                            pixels[op++] = 255;
+                        }
+                        --xleft;
+                    }
+                };
+                this.decodeAndBlitFrameRGBA = function (frame_num, pixels) {
+                    var frame = this.frameInfo(frame_num);
+                    var num_pixels = frame.width * frame.height;
+                    var index_stream = new Uint8Array(num_pixels);
+                    GifReaderLZWOutputIndexStream(
+                        buf, frame.data_offset, index_stream, num_pixels);
+                    var palette_offset = frame.palette_offset;
+                    var trans = frame.transparent_index;
+                    if (trans === null) trans = 256;
+                    var framewidth = frame.width;
+                    var framestride = width - framewidth;
+                    var xleft = framewidth;
+                    var opbeg = ((frame.y * width) + frame.x) * 4;
+                    var opend = ((frame.y + frame.height) * width + frame.x) * 4;
+                    var op = opbeg;
+                    var scanstride = framestride * 4;
+                    if (frame.interlaced === true) {
+                        scanstride += width * 4 * 7;
+                    }
+                    var interlaceskip = 8;
+                    for (var i = 0, il = index_stream.length; i < il; ++i) {
+                        var index = index_stream[i];
+                        if (xleft === 0) {
+                            op += scanstride;
+                            xleft = framewidth;
+                            if (op >= opend) {
+                                scanstride = framestride * 4 + width * 4 * (interlaceskip - 1);
+                                op = opbeg + (framewidth + framestride) * (interlaceskip << 1);
+                                interlaceskip >>= 1;
+                            }
+                        }
+                        if (index === trans) {
+                            op += 4;
+                        } else {
+                            var r = buf[palette_offset + index * 3];
+                            var g = buf[palette_offset + index * 3 + 1];
+                            var b = buf[palette_offset + index * 3 + 2];
+                            pixels[op++] = r;
+                            pixels[op++] = g;
+                            pixels[op++] = b;
+                            pixels[op++] = 255;
+                        }
+                        --xleft;
+                    }
+                };
+            }
+            function GifReaderLZWOutputIndexStream(code_stream, p, output, output_length) {
+                var min_code_size = code_stream[p++];
+                var clear_code = 1 << min_code_size;
+                var eoi_code = clear_code + 1;
+                var next_code = eoi_code + 1;
+                var cur_code_size = min_code_size + 1;
+                var code_mask = (1 << cur_code_size) - 1;
+                var cur_shift = 0;
+                var cur = 0;
+                var op = 0;
+                var subblock_size = code_stream[p++];
+                var code_table = new Int32Array(4096);
+                var prev_code = null;
+                while (true) {
+                    while (cur_shift < 16) {
+                        if (subblock_size === 0) break;
+                        cur |= code_stream[p++] << cur_shift;
+                        cur_shift += 8;
+                        if (subblock_size === 1) {
+                            subblock_size = code_stream[p++];
+                        } else {
+                            --subblock_size;
+                        }
+                    }
+                    if (cur_shift < cur_code_size)
+                        break;
+                    var code = cur & code_mask;
+                    cur >>= cur_code_size;
+                    cur_shift -= cur_code_size;
+                    if (code === clear_code) {
+                        next_code = eoi_code + 1;
+                        cur_code_size = min_code_size + 1;
+                        code_mask = (1 << cur_code_size) - 1;
+                        prev_code = null;
+                        continue;
+                    } else if (code === eoi_code) {
+                        break;
+                    }
+                    var chase_code = code < next_code ? code : prev_code;
+                    var chase_length = 0;
+                    var chase = chase_code;
+                    while (chase > clear_code) {
+                        chase = code_table[chase] >> 8;
+                        ++chase_length;
+                    }
+                    var k = chase;
+                    var op_end = op + chase_length + (chase_code !== code ? 1 : 0);
+                    if (op_end > output_length) {
+                        console.log("Warning, gif stream longer than expected.");
+                        return;
+                    }
+                    output[op++] = k;
+                    op += chase_length;
+                    var b = op;
+                    if (chase_code !== code)
+                        output[op++] = k;
+                    chase = chase_code;
+                    while (chase_length--) {
+                        chase = code_table[chase];
+                        output[--b] = chase & 0xff;
+                        chase >>= 8;
+                    }
+                    if (prev_code !== null && next_code < 4096) {
+                        code_table[next_code++] = prev_code << 8 | k;
+                        if (next_code >= code_mask + 1 && cur_code_size < 12) {
+                            ++cur_code_size;
+                            code_mask = code_mask << 1 | 1;
+                        }
+                    }
+                    prev_code = code;
+                }
+                if (op !== output_length) {
+                    console.log("Warning, gif stream shorter than expected.");
+                }
+                return output;
+            }
+            try { exports.GifWriter = GifWriter; exports.GifReader = GifReader } catch (e) { }
+            if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifReader = GifReader; }
 
         }
         /* OMG_INLINE_END */
@@ -1534,7 +1883,7 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
                         gct.push([gifData[pOff + i * 3], gifData[pOff + i * 3 + 1], gifData[pOff + i * 3 + 2]]);
                     }
                 }
-            } catch(e) {}
+            } catch (e) { }
 
             const rgba = new Uint8ClampedArray(width * height * 4);
 
@@ -1583,7 +1932,7 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
         }
 
         // Khôi phục cấu hình từ localStorage
-        const isHostedOnInternet = (window.location.protocol === 'https:') || 
+        const isHostedOnInternet = (window.location.protocol === 'https:') ||
             (window.location.hostname && !/^(\d{1,3}\.){3}\d{1,3}$/.test(window.location.hostname) && window.location.hostname !== 'localhost');
 
         if (localStorage.getItem('hologram_conn_type')) {
@@ -1604,7 +1953,7 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
 
         function updateInputPlaceholder() {
             if (currentConnType === 'cloud') {
-                connInput.placeholder = "Mã thiết bị (VD: HOLO-FD9C)";
+                connInput.placeholder = "Mã thiết bị Cube (VD: HOLO-FD9C)";
                 connInput.value = localStorage.getItem('hologram_device_id') || 'HOLO-FD9C';
             } else {
                 connInput.placeholder = "ws://192.168.x.x:81";
@@ -1639,11 +1988,11 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
 
         function disconnectAll() {
             if (ws) {
-                try { ws.close(); } catch(e){}
+                try { ws.close(); } catch (e) { }
                 ws = null;
             }
             if (mqttClient) {
-                try { mqttClient.end(true); } catch(e){}
+                try { mqttClient.end(true); } catch (e) { }
                 mqttClient = null;
             }
             statusText.textContent = "Chưa kết nối";
@@ -1710,7 +2059,7 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
                 });
 
                 mqttClient.on('message', (topic, payload) => {
-                    log(`ESP32 [${topic}]: ${payload.toString()}`);
+                    log(`Cube [${topic}]: ${payload.toString()}`);
                 });
 
                 mqttClient.on('error', (err) => {
@@ -1741,7 +2090,7 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
         function connectLocalWs() {
             const rawVal = connInput.value.trim();
             if (!rawVal) {
-                alert("Vui lòng nhập địa chỉ IP của ESP32 (VD: 192.168.1.59)");
+                alert("Vui lòng nhập địa chỉ IP của Cube (VD: 192.168.1.59)");
                 return;
             }
             const wsUrl = formatWsUrl(rawVal);
@@ -1754,7 +2103,7 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
             statusBadge.className = "status-badge";
 
             try {
-                if (ws) { try { ws.close(); } catch(e){} ws = null; }
+                if (ws) { try { ws.close(); } catch (e) { } ws = null; }
                 ws = new WebSocket(wsUrl);
                 ws.binaryType = "arraybuffer";
 
@@ -1778,13 +2127,13 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
                 };
 
                 ws.onerror = (err) => {
-                    log(`⚠️ Không thể kết nối tới ${wsUrl}. Hãy chắc chắn điện thoại/máy tính đang cùng Wi-Fi với ESP32!`);
+                    log(`⚠️ Không thể kết nối tới ${wsUrl}. Hãy chắc chắn điện thoại/máy tính đang cùng Wi-Fi với Cube!`);
                     statusText.textContent = "Lỗi kết nối IP";
                     statusBadge.className = "status-badge";
                 };
 
                 ws.onmessage = (event) => {
-                    log(`ESP32: ${event.data}`);
+                    log(`Cube: ${event.data}`);
                 };
             } catch (e) {
                 log(`Lỗi khởi tạo WebSocket: ${e.message}`);
@@ -1797,7 +2146,7 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
         // Hàm phát lệnh JSON thống nhất
         function sendCommand(obj) {
             if (!isConnected()) {
-                showConnWarning("⚠️ Chưa kết nối với ESP32! Nét vẽ chưa truyền lên màn hình. Hãy bấm <strong>Kết nối</strong> ở trên.");
+                showConnWarning("⚠️ Chưa kết nối với Cube! Nét vẽ chưa truyền lên màn hình. Hãy bấm <strong>Kết nối</strong> ở trên.");
                 return false;
             }
             const msg = JSON.stringify(obj);
@@ -1822,8 +2171,8 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
                 mqttClient.publish(`hologram/${devId}/chunk`, new Uint8Array(buffer));
                 return true;
             }
-            alert("⚠️ Chưa kết nối tới ESP32! Vui lòng bấm Kết nối ở trên (IP: 192.168.1.59)");
-            showConnWarning("⚠️ Chưa kết nối tới ESP32! Hãy nhập IP và bấm Kết nối.");
+            alert("⚠️ Chưa kết nối tới Cube! Vui lòng bấm Kết nối ở trên (IP: 192.168.1.59)");
+            showConnWarning("⚠️ Chưa kết nối tới Cube! Hãy nhập IP và bấm Kết nối.");
             return false;
         }
 
@@ -1887,13 +2236,10 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
             // Luôn đồng nhất kích thước vuông chuẩn 240x240 cho vùng chiếu Hologram
             canvas.width = 240;
             canvas.height = 240;
-            canvas.style.width = '240px';
-            canvas.style.height = '240px';
+            // style.width & style.height được quản lý co giãn thông minh bởi CSS Responsive
 
             previewCanvas.width = 240;
             previewCanvas.height = 240;
-            previewCanvas.style.width = '240px';
-            previewCanvas.style.height = '240px';
 
             ctx.fillStyle = '#000000';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -1985,12 +2331,13 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
         }
 
         function startDrawing(e) {
+            if (e && e.cancelable) e.preventDefault(); // Chống giật/rung trang khi vừa đặt ngón tay xuống vẽ
             isDrawing = true;
             const p = getCanvasCoords(e);
             lastX = p.x;
             lastY = p.y;
             updateCoordsHud(p);
-            
+
             // Vẽ điểm ban đầu ngay khi chạm/click
             ctx.fillStyle = (currentTool === 'eraser') ? '#000000' : currentColor;
             ctx.beginPath();
@@ -2011,13 +2358,14 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
             }
         }
 
-        function stopDrawing() {
+        function stopDrawing(e) {
+            if (isDrawing && e && e.cancelable) e.preventDefault();
             isDrawing = false;
         }
 
         function draw(e) {
             if (!isDrawing) return;
-            e.preventDefault();
+            if (e && e.cancelable) e.preventDefault(); // Chống rung/cuộn trang khi vuốt vẽ liên tục
             const p = getCanvasCoords(e);
             updateCoordsHud(p);
 
@@ -2058,7 +2406,16 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
 
         canvas.addEventListener('touchstart', startDrawing, { passive: false });
         canvas.addEventListener('touchmove', draw, { passive: false });
+        canvas.addEventListener('touchend', stopDrawing, { passive: false });
+        canvas.addEventListener('touchcancel', stopDrawing, { passive: false });
         window.addEventListener('touchend', stopDrawing);
+
+        // Khóa cuộn trang toàn cục khi đang vẽ trên màn hình cảm ứng điện thoại
+        window.addEventListener('touchmove', (e) => {
+            if (isDrawing && e.cancelable) {
+                e.preventDefault();
+            }
+        }, { passive: false });
 
         btnClear.addEventListener('click', () => {
             ctx.fillStyle = '#000000';
@@ -2068,22 +2425,22 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
         });
 
         btnSendCanvas.addEventListener('click', () => {
-            sendCanvasToESP32(canvas);
+            sendCanvasToCube(canvas);
         });
 
         // ====================================================================
-        // GỬI CANVAS LÊN ESP32 BẰNG NHỊ PHÂN THEO KHỐI (CHUNK)
+        // GỬI CANVAS LÊN CUBE BẰNG NHỊ PHÂN THEO KHỐI (CHUNK)
         // ====================================================================
-        function sendCanvasToESP32(sourceCanvas) {
+        function sendCanvasToCube(sourceCanvas) {
             if (!isConnected()) {
-                alert("Chưa kết nối tới ESP32! Vui lòng bấm Kết nối trước.");
+                alert("Chưa kết nối tới Cube! Vui lòng bấm Kết nối trước.");
                 return;
             }
 
             const targetW = 240;
             const targetH = 240;
 
-            log(`🚀 Bắt đầu gửi ảnh (${targetW}x${targetH}) lên màn hình ESP32...`);
+            log(`🚀 Bắt đầu gửi ảnh (${targetW}x${targetH}) lên màn hình Cube...`);
             const tempCtx = sourceCanvas.getContext('2d');
             const imgData = tempCtx.getImageData(0, 0, targetW, targetH).data;
 
@@ -2102,7 +2459,7 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
 
             if (progressBar) progressBar.style.display = 'block';
             if (tab1Card) tab1Card.style.display = 'block';
-            if (tab2Title) tab2Title.textContent = "🚀 Đang gửi ảnh (240x240) lên ESP32...";
+            if (tab2Title) tab2Title.textContent = "🚀 Đang gửi ảnh (240x240) lên Cube...";
 
             let chunkIdx = 0;
 
@@ -2340,13 +2697,13 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
             isResizing = false;
         });
 
-                
 
-                btnSendCropped.addEventListener('click', () => {
+
+        btnSendCropped.addEventListener('click', () => {
             if (gifFrames && gifFrames.length > 1) {
                 const choice = confirm(`Ảnh bạn tải lên là GIF ĐỘNG!
 
-• Bấm [OK] để NẠP GIF ĐỘNG VÀO FLASH ESP32 (Phát mượt mà 60 FPS)
+• Bấm [OK] để NẠP GIF ĐỘNG VÀO FLASH CUBE (Phát mượt mà 60 FPS)
 • Bấm [Cancel] để chỉ gửi 1 khung hình tĩnh.`);
                 if (choice) {
                     if (btnUploadCroppedGif) btnUploadCroppedGif.click();
@@ -2354,11 +2711,11 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
                 }
             }
             sendCommand({ cmd: "clear", c: 0 });
-            sendCanvasToESP32(previewCanvas);
+            sendCanvasToCube(previewCanvas);
         });
 
         // ====================================================================
-        // ANIMATED GIF: PARSE FRAMES & SEND TO ESP32 FRAME-BY-FRAME
+        // ANIMATED GIF: PARSE FRAMES & SEND TO CUBE FRAME-BY-FRAME
         // ====================================================================
         let gifFrames = [];       // Array of {canvas, delay} for each GIF frame
         let gifPlaying = false;
@@ -2368,7 +2725,7 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
         const gifFrameInfo = document.getElementById('gifFrameInfo');
 
         // Override loadImage to detect animated GIF
-                let tab2PreviewTimer = null;
+        let tab2PreviewTimer = null;
         let tab2FrameIdx = 0;
 
         function startTab2GifPreviewAnimation() {
@@ -2444,7 +2801,7 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
                                 }
                                 if (btnUploadCroppedGif) {
                                     btnUploadCroppedGif.style.display = 'block';
-                                    btnUploadCroppedGif.textContent = `💾 Nạp GIF đã cắt vào Flash ESP32 (60 FPS)`;
+                                    btnUploadCroppedGif.textContent = `💾 Nạp GIF đã cắt vào Flash Cube (60 FPS)`;
                                 }
                                 if (gifFrameInfo) {
                                     gifFrameInfo.style.display = 'block';
@@ -2454,7 +2811,7 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
                             if (pBar) pBar.style.display = 'none';
                             return;
                         }
-                    } catch(err) {
+                    } catch (err) {
                         console.warn("Omggif parse error, fallback to static:", err);
                     }
                     loadImageStatic(file);
@@ -2486,7 +2843,7 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
                 return;
             }
             if (!isConnected()) {
-                alert("Chưa kết nối ESP32!");
+                alert("Chưa kết nối Cube!");
                 return;
             }
 
@@ -2533,7 +2890,7 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
                     gifFrameInfo.textContent = `Đang phát frame ${(frameIdx % resizedFrames.length) + 1}/${resizedFrames.length}`;
                 }
 
-                await sendCanvasToESP32Async(frame.canvas);
+                await sendCanvasToCubeAsync(frame.canvas);
 
                 frameIdx++;
                 gifTimerId = setTimeout(sendFrame, Math.max(frame.delay, 80));
@@ -2550,8 +2907,8 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
             }
         }
 
-        // Async version of sendCanvasToESP32 (returns promise)
-        function sendCanvasToESP32Async(sourceCanvas) {
+        // Async version of sendCanvasToCube (returns promise)
+        function sendCanvasToCubeAsync(sourceCanvas) {
             return new Promise((resolve) => {
                 const targetW = sourceCanvas.width;
                 const targetH = sourceCanvas.height;
@@ -2639,7 +2996,7 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
                         if (gifUploadProgressFill) gifUploadProgressFill.style.width = pct + '%';
                         const t3Pct = document.getElementById('tab3LoadingPct');
                         if (t3Pct) t3Pct.textContent = pct + '%';
-                        if (gifUploadStatusText) gifUploadStatusText.textContent = `Đang nạp LAN: ${pct}% (${Math.round(e.loaded/1024)}/${Math.round(e.total/1024)} KB)`;
+                        if (gifUploadStatusText) gifUploadStatusText.textContent = `Đang nạp LAN: ${pct}% (${Math.round(e.loaded / 1024)}/${Math.round(e.total / 1024)} KB)`;
                     }
                 };
                 xhr.onload = () => {
@@ -2649,7 +3006,7 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
                         reject(new Error(`HTTP ${xhr.status}: ${xhr.statusText}`));
                     }
                 };
-                xhr.onerror = () => reject(new Error("Lỗi kết nối HTTP LAN tới ESP32"));
+                xhr.onerror = () => reject(new Error("Lỗi kết nối HTTP LAN tới Cube"));
                 xhr.timeout = 25000;
                 xhr.ontimeout = () => reject(new Error("Hết thời gian tải lên (Timeout)"));
                 xhr.send(formData);
@@ -2828,7 +3185,7 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
                             const dr = r - palR[p];
                             const dg = g - palG[p];
                             const db = b - palB[p];
-                            const dist = dr*dr + dg*dg + db*db;
+                            const dist = dr * dr + dg * dg + db * db;
                             if (dist < bestDist) {
                                 bestDist = dist;
                                 bestIdx = p;
@@ -2939,13 +3296,13 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
                     const endLen = writer.end();
                     const blob = new Blob([buf.subarray(0, endLen)], { type: 'image/gif' });
                     resolve(blob);
-                } catch(e) {
+                } catch (e) {
                     reject(e);
                 }
             });
         }
 
-        // Nạp GIF đã cắt ở Tab 2 trực tiếp vào Flash ESP32
+        // Nạp GIF đã cắt ở Tab 2 trực tiếp vào Flash Cube
         const btnUploadCroppedGif = document.getElementById('btnUploadCroppedGif');
         if (btnUploadCroppedGif) {
             btnUploadCroppedGif.addEventListener('click', async () => {
@@ -2954,12 +3311,12 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
                     return;
                 }
                 if (!isConnected()) {
-                    alert("Chưa kết nối tới ESP32!");
+                    alert("Chưa kết nối tới Cube!");
                     return;
                 }
 
                 btnUploadCroppedGif.disabled = true;
-                log(`💾 Đang nạp hoạt ảnh GIF đã cắt (${gifFrames.length} frames) vào Flash ESP32...`);
+                log(`💾 Đang nạp hoạt ảnh GIF đã cắt (${gifFrames.length} frames) vào Flash Cube...`);
                 sendCommand({ cmd: "clear", c: 0 });
 
                 try {
@@ -2973,9 +3330,9 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
                         await uploadGifViaMqttChunks(optimizedBlob);
                     }
 
-                    log(`🎉 Đã nạp thành công GIF vào Flash ESP32! ESP32 đang chiếu ở tốc độ 60 FPS.`);
+                    log(`🎉 Đã nạp thành công GIF vào Flash Cube! Cube đang chiếu ở tốc độ 60 FPS.`);
                     if (btnPlayCustom) btnPlayCustom.style.display = 'block';
-                } catch(err) {
+                } catch (err) {
                     log(`❌ Lỗi nạp GIF: ${err.message}`);
                     alert(`Lỗi nạp GIF: ${err.message}`);
                 } finally {
@@ -3193,7 +3550,7 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
             });
         }
 
-        // Nút Cắt & Chiếu Lên ESP32 trong Tab 3
+        // Nút Cắt & Chiếu Lên Cube trong Tab 3
         if (btnCropAndPlayCustomGif) {
             btnCropAndPlayCustomGif.addEventListener('click', async () => {
                 if (!tab3ParsedFrames || tab3ParsedFrames.length === 0) {
@@ -3201,7 +3558,7 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
                     return;
                 }
                 if (!isConnected()) {
-                    alert("Chưa kết nối tới ESP32! Vui lòng bấm [Kết nối] trước.");
+                    alert("Chưa kết nối tới Cube! Vui lòng bấm [Kết nối] trước.");
                     return;
                 }
 
@@ -3220,22 +3577,22 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
                 try {
                     const optimizedBlob = await encodeCanvasesTo240Gif(tab3ParsedFrames, gifCropState, 60, gifCropSourceCanvas, tab3OrigGct);
                     gifUploadProgressFill.style.width = '60%';
-                    log(`⚡ Đã tạo file GIF 240x240 (${Math.round(optimizedBlob.size / 1024)} KB) màu sắc trung thực! Đang nạp lên ESP32...`);
+                    log(`⚡ Đã tạo file GIF 240x240 (${Math.round(optimizedBlob.size / 1024)} KB) màu sắc trung thực! Đang nạp lên Cube...`);
 
                     const canUseHttp = (currentConnType === 'lan' || isLocalNetworkIp());
                     if (canUseHttp) {
-                        gifUploadStatusText.textContent = `Đang nạp file (${Math.round(optimizedBlob.size/1024)} KB) qua LAN tốc độ cao...`;
+                        gifUploadStatusText.textContent = `Đang nạp file (${Math.round(optimizedBlob.size / 1024)} KB) qua LAN tốc độ cao...`;
                         await uploadGifViaHttp(optimizedBlob);
                     } else {
-                        gifUploadStatusText.textContent = `Đang truyền file (${Math.round(optimizedBlob.size/1024)} KB) qua Cloud 4G...`;
+                        gifUploadStatusText.textContent = `Đang truyền file (${Math.round(optimizedBlob.size / 1024)} KB) qua Cloud 4G...`;
                         await uploadGifViaMqttChunks(optimizedBlob);
                     }
 
                     gifUploadProgressFill.style.width = '100%';
-                    gifUploadStatusText.textContent = "✅ Nạp thành công! ESP32 đang chiếu hoạt ảnh GIF.";
-                    log(`🎉 Đã chiếu thành công GIF đã cắt trên ESP32!`);
+                    gifUploadStatusText.textContent = "✅ Nạp thành công! Cube đang chiếu hoạt ảnh GIF.";
+                    log(`🎉 Đã chiếu thành công GIF đã cắt trên Cube!`);
                     if (btnPlayCustom) btnPlayCustom.style.display = 'block';
-                } catch(err) {
+                } catch (err) {
                     log(`❌ Lỗi nạp GIF: ${err.message}`);
                     gifUploadStatusText.textContent = `❌ Lỗi: ${err.message}`;
                     alert(`Lỗi nạp GIF: ${err.message}`);
@@ -3263,7 +3620,7 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
             });
         }
 
-                async function handleCustomGifSelected(file) {
+        async function handleCustomGifSelected(file) {
             if (!file.name.toLowerCase().endsWith('.gif') && file.type !== 'image/gif') {
                 alert("Vui lòng chọn file định dạng .gif!");
                 return;
@@ -3301,14 +3658,14 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
                         if (btnUploadAndPlayGif) btnUploadAndPlayGif.style.display = 'block';
                         if (gifCropWorkspace) gifCropWorkspace.style.display = 'none';
                         if (customGifAdvice) {
-                            customGifAdvice.textContent = `✅ File đã đạt chuẩn kích thước Hologram 240x240. Bấm [Chiếu Ngay] để phát hoạt ảnh trên ESP32.`;
+                            customGifAdvice.textContent = `✅ File đã đạt chuẩn kích thước Hologram 240x240. Bấm [Chiếu Ngay] để phát hoạt ảnh trên Cube.`;
                             customGifAdvice.style.display = 'block';
                         }
                     }
                     log(`🎬 Đã nạp GIF: ${file.name} (${origW}x${origH}px, ${tab3ParsedFrames.length} frames).`);
                     return;
                 }
-            } catch(e) {
+            } catch (e) {
                 console.warn("Could not parse gif metadata:", e);
                 log(`🎬 Đã chọn GIF: ${file.name} (${kb} KB). Bấm [Chiếu Ngay] để tải lên.`);
             }
@@ -3318,7 +3675,7 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
             btnUploadAndPlayGif.addEventListener('click', async () => {
                 if (!selectedCustomGifFile) return;
                 if (!isConnected()) {
-                    alert("Chưa kết nối tới ESP32! Vui lòng bấm [Kết nối] trước.");
+                    alert("Chưa kết nối tới Cube! Vui lòng bấm [Kết nối] trước.");
                     return;
                 }
                 await uploadAndPlayCustomGif(selectedCustomGifFile);
@@ -3327,7 +3684,7 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
 
         if (btnDeleteCustomGif) {
             btnDeleteCustomGif.addEventListener('click', () => {
-                if (!confirm("Xác nhận xóa file GIF tùy chọn khỏi Flash ESP32 để giải phóng bộ nhớ?")) return;
+                if (!confirm("Xác nhận xóa file GIF tùy chọn khỏi Flash Cube để giải phóng bộ nhớ?")) return;
                 sendCommand({ cmd: "clear", c: 0 });
                 sendCommand({ cmd: "del_custom_gif" });
                 if (customGifPreviewCard) customGifPreviewCard.style.display = 'none';
@@ -3335,7 +3692,7 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
                 if (btnPlayCustom) btnPlayCustom.style.display = 'none';
                 selectedCustomGifFile = null;
                 tab3ParsedFrames = [];
-                log("🗑️ Đã xóa file GIF tùy chọn khỏi bộ nhớ Flash ESP32!");
+                log("🗑️ Đã xóa file GIF tùy chọn khỏi bộ nhớ Flash Cube!");
             });
         }
 
@@ -3361,18 +3718,18 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
                     log(`✅ Tối ưu thành công! Dung lượng: ${Math.round(finalBlob.size / 1024)} KB.`);
                 }
 
-                // 2. Tiến hành tải lên ESP32:
+                // 2. Tiến hành tải lên Cube:
                 const canUseHttp = (currentConnType === 'lan' || isLocalNetworkIp());
                 if (canUseHttp) {
-                    gifUploadStatusText.textContent = `Đang nạp file (${Math.round(finalBlob.size/1024)} KB) qua LAN tốc độ cao...`;
+                    gifUploadStatusText.textContent = `Đang nạp file (${Math.round(finalBlob.size / 1024)} KB) qua LAN tốc độ cao...`;
                     await uploadGifViaHttp(finalBlob);
                 } else {
-                    gifUploadStatusText.textContent = `Đang truyền file (${Math.round(finalBlob.size/1024)} KB) qua Cloud 4G...`;
+                    gifUploadStatusText.textContent = `Đang truyền file (${Math.round(finalBlob.size / 1024)} KB) qua Cloud 4G...`;
                     await uploadGifViaMqttChunks(finalBlob);
                 }
 
-                gifUploadStatusText.textContent = "✅ Nạp thành công! ESP32 đang chiếu hoạt ảnh GIF.";
-                log(`🎉 Đã chiếu GIF "${file.name}" trên ESP32!`);
+                gifUploadStatusText.textContent = "✅ Nạp thành công! Cube đang chiếu hoạt ảnh GIF.";
+                log(`🎉 Đã chiếu GIF "${file.name}" trên Cube!`);
                 if (btnPlayCustom) btnPlayCustom.style.display = 'block';
             } catch (err) {
                 log(`❌ Lỗi nạp GIF: ${err.message}`);
@@ -3468,7 +3825,7 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
         setRotation(currentRotation, false);
 
         setTimeout(() => {
-            const isHosted = (window.location.protocol === 'https:') || 
+            const isHosted = (window.location.protocol === 'https:') ||
                 (window.location.hostname && !/^(\d{1,3}\.){3}\d{1,3}$/.test(window.location.hostname) && window.location.hostname !== 'localhost');
 
             if (isHosted) {
@@ -3488,7 +3845,7 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
                 connect();
             }
         }, 200);
-    
+
         // ====================================================================
         // DIEU KHIEN HE MAU MAN HINH (RGB <-> BGR)
         // ====================================================================
@@ -3502,8 +3859,8 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
             currentColorOrder = (order === 1) ? 1 : 0;
             const isBgr = (currentColorOrder === 1);
             if (colorOrderDesc) {
-                colorOrderDesc.textContent = isBgr 
-                    ? "Đang dùng: BGR (Đã đảo Đỏ ⇋ Xanh chuẩn panel ILI9341)" 
+                colorOrderDesc.textContent = isBgr
+                    ? "Đang dùng: BGR (Đã đảo Đỏ ⇋ Xanh chuẩn panel ILI9341)"
                     : "Đang dùng: RGB (Chuẩn RGB)";
             }
             if (btnToggleColorOrder) {
@@ -3511,8 +3868,8 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
                 btnToggleColorOrder.style.background = isBgr ? "#10b981" : "#3b82f6";
             }
             if (btnTab2ColorToggle) {
-                btnTab2ColorToggle.textContent = isBgr 
-                    ? "🎨 Hệ màu: BGR (Bấm để đổi sang RGB)" 
+                btnTab2ColorToggle.textContent = isBgr
+                    ? "🎨 Hệ màu: BGR (Bấm để đổi sang RGB)"
                     : "🎨 Hệ màu: RGB (Bấm để đổi sang BGR)";
                 btnTab2ColorToggle.style.background = isBgr ? "#10b981" : "#3b82f6";
             }
@@ -3525,7 +3882,7 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
             log(`🎨 Đã đổi hệ màu màn hình sang: ${nextOrder === 1 ? 'BGR' : 'RGB'}`);
             if (previewCanvas && !tab2PreviewTimer && loadedImage) {
                 setTimeout(() => {
-                    sendCanvasToESP32(previewCanvas);
+                    sendCanvasToCube(previewCanvas);
                 }, 300);
             }
         }
@@ -3533,6 +3890,7 @@ if (typeof window !== "undefined") { window.GifWriter = GifWriter; window.GifRea
         if (btnToggleColorOrder) btnToggleColorOrder.addEventListener('click', toggleColorOrder);
         if (btnTab2ColorToggle) btnTab2ColorToggle.addEventListener('click', toggleColorOrder);
 
-</script>
+    </script>
 </body>
+
 </html>
