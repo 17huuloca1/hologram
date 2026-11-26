@@ -844,7 +844,8 @@
             }
 
             #cropSourceCanvas,
-            #gifCropSourceCanvas {
+            #gifCropSourceCanvas,
+            #videoCropSourceCanvas {
                 max-width: 100% !important;
                 height: auto !important;
             }
@@ -858,7 +859,8 @@
             }
 
             #previewCanvas,
-            #gifCropPreviewCanvas {
+            #gifCropPreviewCanvas,
+            #videoPreviewCanvas {
                 width: min(85vw, 240px) !important;
                 height: min(85vw, 240px) !important;
             }
@@ -883,9 +885,9 @@
             <select id="connTypeSelect"
                 style="background: var(--bg-card); color: var(--accent); border: 1px solid var(--border); padding: 8px 10px; border-radius: 8px; font-weight: 600; font-size: 0.82rem; cursor: pointer; outline: none;">
                 <option value="lan" selected>🏠 Wi-Fi Nhà (LAN)</option>
-                <option value="cloud">🌐 Cloud 4G (HiveMQ)</option>
+                <option value="cloud">🌐 Khác Wi-Fi / 4G (Cloud)</option>
             </select>
-            <input type="text" id="connInput" class="ws-input" placeholder="192.168.1.59" value="192.168.1.59">
+            <input type="text" id="connInput" class="ws-input" placeholder="192.168.1.233 hoặc HOLO-B1D8" value="192.168.1.233">
             <button id="btnConnect" class="btn">Kết nối</button>
             <button id="btnResetWifi" class="btn btn-secondary" style="font-size: 0.8rem; padding: 8px 12px;"
                 title="Xóa Wi-Fi cũ để Cube phát AP cấu hình mạng mới">📶 Đổi Wi-Fi</button>
@@ -898,9 +900,9 @@
 
     <div class="tabs">
         <button class="tab-btn active" data-tab="paintTab">🎨 Bảng vẽ Paint</button>
-        <button class="tab-btn" data-tab="cropTab">🖼️ Xuất ảnh & Cắt chuẩn (Không méo)</button>
-        <button class="tab-btn" data-tab="gifTab">👾 Chiếu Hologram GIF</button>
-        <button class="tab-btn" data-tab="clockTab">⏰ Đồng hồ Điện tử &amp; Thời tiết</button>
+        <button class="tab-btn" data-tab="cropTab">🖼️ Cắt Ảnh &amp; GIF (Chuẩn 1:1)</button>
+        <button class="tab-btn" data-tab="gifTab">🗂️ Thẻ Nhớ, GIF &amp; Video 30FPS</button>
+        <button class="tab-btn" data-tab="clockTab">🐱 Đồng hồ Kawaii &amp; Wi-Fi</button>
     </div>
 
     <!-- TAB 1: PAINT -->
@@ -909,8 +911,7 @@
             <!-- Cảnh báo kết nối nếu chưa kết nối -->
             <div id="connWarningBanner"
                 style="display: none; background: rgba(255, 68, 68, 0.15); border: 1px solid #ff4444; color: #ff6666; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; margin-bottom: 8px; text-align: center;">
-                ⚠️ Bạn chưa kết nối với Cube! Nét vẽ chỉ lưu cục bộ. Hãy nhập IP <strong>192.168.1.59</strong> và bấm
-                <strong>Kết nối</strong> ở trên.
+                ⚠️ Bạn chưa kết nối với Cube! Hãy nhập IP (VD: <strong>192.168.1.233</strong>) hoặc mã Cloud 4G (<strong>HOLO-B1D8</strong>) rồi bấm <strong>Kết nối</strong>.
             </div>
 
             <div class="canvas-container-outer">
@@ -1066,18 +1067,22 @@
                     </div>
                 </div>
 
-                <!-- Ô xem trước đúng chuẩn màn hình 240x320 -->
+                <!-- Ô xem trước đúng chuẩn màn hình 240x240 -->
                 <div class="preview-pane">
-                    <p style="font-size: 0.8rem; color: var(--text-dim);">Xem trước trên màn hình TFT:</p>
+                    <p style="font-size: 0.8rem; color: var(--text-dim);">Xem trước trên màn hình TFT (240×240):</p>
                     <canvas id="previewCanvas" width="240" height="240"></canvas>
-                    <button id="btnSendCropped" class="btn" style="width: 100%; margin-top: 10px;">🚀 Cắt & Gửi lên Cube
-                        (Chuẩn 240x240)</button>
+                    <button type="button" id="btnSnapFullTab2" class="btn btn-secondary" style="width: 100%; margin-top: 8px; font-size: 0.8rem; padding: 6px 10px;">⛶ Chọn Khung Vuông Tối Đa (1:1)</button>
+                    <div id="tab2GifNameWrap" style="display: none; width: 100%; margin-top: 8px; text-align: left;">
+                        <label style="font-size: 0.74rem; color: var(--accent); font-weight: 600;">📝 Đặt tên lưu vào Thẻ nhớ (.gif):</label>
+                        <input type="text" id="tab2GifSaveName" class="ws-input" value="anh_dong.gif" placeholder="VD: meo_cute.gif" style="width: 100%; box-sizing: border-box; margin-top: 4px; padding: 6px 8px; font-size: 0.82rem;">
+                    </div>
+                    <button id="btnSendCropped" class="btn" style="width: 100%; margin-top: 8px;">🚀 Cắt &amp; Gửi Ảnh Tĩnh lên Cube</button>
                     <button id="btnSendGifAnim" class="btn"
                         style="width: 100%; margin-top: 6px; background: #e040fb; color: #fff; display: none;">🎞️ Gửi
                         GIF động trực tiếp (Stream)</button>
                     <button id="btnUploadCroppedGif" class="btn"
                         style="width: 100%; margin-top: 6px; background: #00d26a; color: #000; font-weight: bold; display: none;">💾
-                        Nạp GIF đã cắt vào Flash Cube (60 FPS)</button>
+                        Lưu GIF đã cắt vào Thẻ nhớ &amp; Chiếu</button>
                     <button id="btnTab2ColorToggle" class="btn"
                         style="width: 100%; margin-top: 6px; background: #6366f1; color: #fff; font-size: 0.8rem; font-weight: 600;">🎨
                         Đổi hệ màu RGB ⇋ BGR (Sửa lệch màu Đỏ/Xanh)</button>
@@ -1108,102 +1113,103 @@
         </div>
     </div>
 
-    <!-- TAB 3: HOLOGRAM GIF -->
+    <!-- TAB 3: THƯ VIỆN THẺ NHỚ MICROSD, GIF CHUẨN NHỊP & VIDEO >= 30 FPS -->
     <div id="gifTab" class="main-container" style="display: none;">
         <div class="card" style="width: 100%; display: flex; flex-direction: column; gap: 16px;">
             <div style="border-bottom: 1px solid var(--border); padding-bottom: 10px;">
-                <h2 style="font-size: 1.1rem; color: var(--accent);">👾 Trình chiếu Hologram GIF (Native 60 FPS)</h2>
-                <p style="font-size: 0.8rem; color: var(--text-dim);">Chuyển đổi giữa chế độ vẽ và chiếu ảnh động
-                    hologram 240x240 qua lăng kính quang học.</p>
+                <h2 style="font-size: 1.1rem; color: var(--accent);">🗂️ Thư Viện Thẻ Nhớ MicroSD • GIF Chuẩn Nhịp &amp; Video ≥ 30 FPS</h2>
+                <p style="font-size: 0.8rem; color: var(--text-dim);">Mọi ảnh GIF &amp; Video đều có khung cắt vuông 1:1, đặt tên tùy ý, tải lên từ <b>bất kỳ mạng Wi-Fi / 4G nào</b> và quản lý trực tiếp trên Thẻ nhớ MicroSD.</p>
             </div>
 
-            <!-- Tải lên GIF Tùy Chọn -->
-            <div
-                style="background: var(--bg-card); padding: 14px; border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px;">
-                <div
-                    style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
-                    <strong style="color: var(--accent); font-size: 0.95rem;">📂 Tải Lên &amp; Chiếu GIF Mới (Từ Máy /
-                        ĐT)</strong>
-                    <span style="font-size: 0.75rem; color: var(--text-dim);">Tự động lưu vào Flash Cube và chiếu
-                        động</span>
+            <!-- 1. THƯ VIỆN NỘI DUNG TRÊN THẺ NHỚ MICROSD (CHỌN PHÁT & XÓA BẤT KỲ FILE NÀO) -->
+            <div style="background: linear-gradient(145deg, rgba(18,27,46,0.98), rgba(11,18,32,0.98)); padding: 14px; border-radius: 10px; border: 1px solid rgba(0, 242, 254, 0.4); display: flex; flex-direction: column; gap: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                    <div>
+                        <strong style="color: var(--accent); font-size: 0.96rem;">💾 Quản Lý Thẻ Nhớ MicroSD (Chọn Phát GIF &amp; Video)</strong>
+                        <div id="sdStorageSummaryBadge" style="font-size: 0.75rem; color: var(--neon-green); margin-top: 2px;">Đang kiểm tra dung lượng Thẻ nhớ...</div>
+                    </div>
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <select id="sdMediaFilterSelect" style="background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border); padding: 6px 8px; border-radius: 6px; font-size: 0.78rem;">
+                            <option value="all" selected>Tất cả (GIF + Video)</option>
+                            <option value="gif">Chỉ ảnh động (.gif)</option>
+                            <option value="video">Chỉ Video (.mjpg)</option>
+                        </select>
+                        <button type="button" id="btnRefreshMediaList" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;">🔄 Làm mới</button>
+                    </div>
+                </div>
+
+                <div id="sdMediaListContainer" style="display: flex; flex-direction: column; gap: 8px; max-height: 290px; overflow-y: auto; padding-right: 2px;">
+                    <div style="text-align: center; padding: 18px; color: var(--text-dim); font-size: 0.82rem; background: rgba(255,255,255,0.02); border-radius: 8px; border: 1px dashed var(--border);">
+                        Hãy kết nối với Cube hoặc bấm <b>🔄 Làm mới</b> để xem toàn bộ ảnh GIF &amp; Video đang lưu trong Thẻ nhớ MicroSD.
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. TẢI LÊN, ĐẶT TÊN & CẮT KHUNG GIF TÙY CHỌN (MỌI MẠNG WI-FI / 4G) -->
+            <div style="background: var(--bg-card); padding: 14px; border-radius: 10px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+                    <strong style="color: var(--accent); font-size: 0.95rem;">📂 Tải Lên, Cắt Khung &amp; Đặt Tên Ảnh GIF Vào Thẻ Nhớ</strong>
+                    <span style="font-size: 0.74rem; color: var(--neon-green);">● Phát đúng tốc độ gốc 1:1 (Không bị tua) • Mọi Wi-Fi / 4G</span>
                 </div>
 
                 <div class="upload-dropzone" id="gifDropzone"
-                    style="padding: 18px; border: 2px dashed var(--accent); border-radius: 8px; text-align: center; cursor: pointer;">
+                    style="padding: 16px; border: 2px dashed var(--accent); border-radius: 8px; text-align: center; cursor: pointer;">
                     <input type="file" id="gifFileInput" accept=".gif,image/gif" style="display: none;">
-                    <div style="font-size: 2rem; margin-bottom: 4px;">🎬</div>
-                    <strong style="color: var(--accent); font-size: 0.9rem;">Bấm vào đây để chọn file GIF động</strong>
-                    <p style="font-size: 0.75rem; color: var(--text-dim); margin-top: 4px;">Hỗ trợ mọi file .gif. Cube
-                        sẽ xóa ảnh cũ và phát hoạt ảnh mượt mà 60 FPS!</p>
+                    <div style="font-size: 1.9rem; margin-bottom: 4px;">🎬</div>
+                    <strong style="color: var(--accent); font-size: 0.9rem;">Bấm vào đây để chọn file GIF động (.gif)</strong>
+                    <p style="font-size: 0.75rem; color: var(--text-dim); margin-top: 4px;">Mọi ảnh GIF tải lên đều hiện khung cắt 1:1 và cho phép đặt tên riêng lưu vào Thẻ nhớ MicroSD!</p>
                 </div>
 
-                <!-- Preview GIF vừa chọn -->
+                <!-- Preview & Đặt tên GIF vừa chọn -->
                 <div id="customGifPreviewCard"
                     style="display: none; flex-direction: column; gap: 10px; background: var(--bg-secondary); padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
-                    <div style="display: flex; align-items: center; gap: 14px;">
+                    <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
                         <img id="customGifImg" src=""
-                            style="width: 70px; height: 70px; object-fit: contain; background: #000; border-radius: 6px; border: 1px solid var(--border);">
-                        <div style="flex: 1; min-width: 0;">
-                            <div id="customGifName"
-                                style="font-weight: 600; font-size: 0.85rem; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                ten_file.gif</div>
-                            <div
-                                style="display: flex; gap: 10px; font-size: 0.75rem; color: var(--text-dim); margin-top: 2px;">
+                            style="width: 68px; height: 68px; object-fit: contain; background: #000; border-radius: 6px; border: 1px solid var(--border);">
+                        <div style="flex: 1; min-width: 200px;">
+                            <div id="customGifName" style="font-weight: 600; font-size: 0.85rem; color: #fff;">ten_file.gif</div>
+                            <div style="display: flex; gap: 10px; font-size: 0.75rem; color: var(--text-dim); margin-top: 2px;">
                                 <span id="customGifSize">0 KB</span>
                                 <span id="customGifDims" style="color: var(--accent);">240x240px</span>
                             </div>
-                            <label
-                                style="font-size: 0.78rem; color: var(--accent); display: flex; align-items: center; gap: 6px; margin-top: 6px; cursor: pointer;">
-                                <input type="checkbox" id="chkAutoOptimizeGif" checked> ⚡ Tự động co giãn 240x240 &amp;
-                                nén chuẩn Flash Cube
-                            </label>
-                            <!-- Thanh Loading Tab 3 -->
-                            <div class="modern-loading-card" id="gifUploadProgress">
-                                <div class="loading-header-row">
-                                    <div class="loading-title-group">
-                                        <span class="pulse-icon">🎬</span>
-                                        <span id="tab3LoadingTitle">Đang nạp hoạt ảnh Hologram...</span>
-                                    </div>
-                                    <span class="loading-pct-badge" id="tab3LoadingPct">0%</span>
-                                </div>
-                                <div class="loading-track-bar">
-                                    <div class="loading-fill-bar" id="gifUploadProgressFill"></div>
-                                </div>
-                                <div class="loading-detail-row">
-                                    <span id="gifUploadStatusText">Đang chuẩn bị...</span>
-                                    <span id="tab3LoadingSpeed">Flash Cube • 60 FPS</span>
-                                </div>
+                            <div style="margin-top: 8px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <label style="font-size: 0.78rem; color: var(--accent); font-weight: 700;">📝 Tên lưu trên Thẻ nhớ:</label>
+                                <input type="text" id="customGifSaveName" class="ws-input" value="my_gif.gif" placeholder="VD: goku_vip.gif" style="flex: 1; min-width: 160px; padding: 6px 10px; font-size: 0.84rem;">
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Thanh Loading GIF -->
+                    <div class="modern-loading-card" id="gifUploadProgress">
+                        <div class="loading-header-row">
+                            <div class="loading-title-group">
+                                <span class="pulse-icon">🎬</span>
+                                <span id="tab3LoadingTitle">Đang lưu hoạt ảnh vào Thẻ nhớ...</span>
+                            </div>
+                            <span class="loading-pct-badge" id="tab3LoadingPct">0%</span>
+                        </div>
+                        <div class="loading-track-bar">
+                            <div class="loading-fill-bar" id="gifUploadProgressFill"></div>
+                        </div>
+                        <div class="loading-detail-row">
+                            <span id="gifUploadStatusText">Đang chuẩn bị...</span>
+                            <span id="tab3LoadingSpeed">MicroSD • Chuẩn nhịp 1:1</span>
                         </div>
                     </div>
                     <div id="customGifAdvice"
                         style="font-size: 0.75rem; color: var(--text-dim); background: rgba(0,210,106,0.1); padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(0,210,106,0.2); display: none;">
                     </div>
-                    <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                        <button id="btnDeleteCustomGif" class="btn btn-danger"
-                            style="padding: 8px 14px; font-size: 0.82rem;">
-                            🗑️ Xóa GIF Flash
-                        </button>
-                        <button id="btnUploadAndPlayGif" class="btn"
-                            style="padding: 8px 18px; font-size: 0.85rem; white-space: nowrap;">
-                            🚀 Chiếu Ngay
-                        </button>
-                    </div>
                 </div>
 
-                <!-- Khung cắt tương tác cho GIF lớn hơn 240x240 (như Tab 2) -->
+                <!-- Khung cắt tương tác LUÔN HIỂN THỊ cho MỌI GIF tải lên -->
                 <div class="crop-workspace" id="gifCropWorkspace"
-                    style="display: none; margin-top: 8px; background: var(--bg-card); padding: 14px; border-radius: 8px; border: 1px solid var(--border); flex-wrap: wrap; gap: 20px; justify-content: center; align-items: flex-start;">
-                    <div
-                        style="width: 100%; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 6px;">
-                        <strong style="color: var(--accent); font-size: 0.95rem;">✂️ Cắt vùng chọn Hologram
-                            (240x240)</strong>
-                        <span style="font-size: 0.75rem; color: var(--accent);" id="gifCropDimsBadge">Khóa vuông 1:1
-                            chuẩn lăng kính</span>
+                    style="display: none; margin-top: 4px; background: var(--bg-card); padding: 14px; border-radius: 8px; border: 1px solid var(--border); flex-wrap: wrap; gap: 20px; justify-content: center; align-items: flex-start;">
+                    <div style="width: 100%; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
+                        <strong style="color: var(--accent); font-size: 0.95rem;">✂️ Chọn Khung Cắt GIF Hologram (240×240)</strong>
+                        <button type="button" id="btnSnapFullTab3Gif" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.76rem;">⛶ Lấy Trọn Khung Vuông 1:1</button>
                     </div>
                     <div style="text-align: center;">
-                        <p style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 6px;">Kéo khung hoặc kéo góc
-                            chấm xanh để chọn vùng cần cắt:</p>
+                        <p style="font-size: 0.8rem; color: var(--text-dim); margin-bottom: 6px;">Kéo khung hoặc kéo góc chấm xanh để chọn vùng cần chiếu:</p>
                         <div class="crop-stage" id="gifCropStage">
                             <canvas id="gifCropSourceCanvas"></canvas>
                             <div class="crop-box" id="gifCropBox">
@@ -1212,61 +1218,76 @@
                         </div>
                     </div>
                     <div class="preview-pane">
-                        <p style="font-size: 0.8rem; color: var(--text-dim);">Xem trước trên màn hình TFT (240x240):</p>
+                        <p style="font-size: 0.8rem; color: var(--text-dim);">Xem trước đúng nhịp gốc (240×240):</p>
                         <canvas id="gifCropPreviewCanvas" width="240" height="240"
                             style="width: 240px; height: 240px; background: #000; border: 2px solid var(--accent); border-radius: 6px; display: block;"></canvas>
-                        <div id="gifCropPreviewInfo" style="font-size: 0.75rem; color: var(--accent); margin-top: 4px;">
-                        </div>
+                        <div id="gifCropPreviewInfo" style="font-size: 0.75rem; color: var(--accent); margin-top: 4px;"></div>
                         <button id="btnCropAndPlayCustomGif" class="btn"
                             style="width: 100%; margin-top: 10px; font-weight: bold; padding: 10px 16px;">
-                            🚀 Cắt &amp; Chiếu Lên Cube (60 FPS)
+                            🚀 Cắt, Lưu Vào Thẻ Nhớ &amp; Chiếu Ngay
                         </button>
                     </div>
                 </div>
             </div>
 
-            
-            <!-- PHÁT VIDEO MP4 TỪ THẺ NHỚ MICRO SD (MJPEG FULL COLOR) -->
+            <!-- 3. TẢI LÊN, CẮT KHUNG & PHÁT VIDEO MP4 TRÊN THẺ NHỚ (CHUẨN >= 30 FPS, MỌI WI-FI / 4G) -->
             <div style="background: linear-gradient(145deg, rgba(21,29,48,0.98), rgba(12,22,40,0.98)); padding: 14px; border-radius: 10px; border: 1px solid rgba(0, 255, 136, 0.4); display: flex; flex-direction: column; gap: 10px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
                     <div>
-                        <strong style="color: var(--neon-green); font-size: 0.96rem;">🎥 Phát Video MP4 trên Thẻ Nhớ MicroSD (Full-Color 65K Màu)</strong>
-                        <div style="font-size: 0.75rem; color: var(--text-dim);">Tự động cắt vuông 240×240 &amp; nén chuẩn <code>video.mjpg</code> tăng tốc phần cứng SIMD ESP32-S3</div>
+                        <strong style="color: var(--neon-green); font-size: 0.96rem;">🎥 Cắt &amp; Nạp Video Lên Thẻ Nhớ MicroSD (Chuẩn Mượt ≥ 30 FPS • Mọi Mạng)</strong>
+                        <div style="font-size: 0.75rem; color: var(--text-dim);">Hỗ trợ tải Video dung lượng lớn qua <b>cả Wi-Fi nội bộ lẫn khác Wi-Fi / 4G</b> • Giải mã Song Nhân ESP32-S3 30–35 FPS</div>
                     </div>
-                    <span id="sdVideoBadge" style="font-size: 0.74rem; background: rgba(0,255,136,0.12); color: var(--neon-green); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(0,255,136,0.3);">MicroSD Ready</span>
+                    <span id="sdVideoBadge" style="font-size: 0.74rem; background: rgba(0,255,136,0.12); color: var(--neon-green); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(0,255,136,0.3);">Dual-Core 30+ FPS</span>
                 </div>
 
                 <div class="upload-dropzone" id="videoDropzone" style="padding: 16px; border: 2px dashed var(--neon-green); border-radius: 8px; text-align: center; cursor: pointer;">
                     <input type="file" id="videoFileInput" accept="video/*,.mp4,.webm,.mov,.mjpg,.mjpeg" style="display: none;">
                     <div style="font-size: 1.8rem; margin-bottom: 4px;">🎞️</div>
                     <strong style="color: var(--neon-green); font-size: 0.88rem;">Bấm chọn Video (.MP4, .MOV, .WebM) hoặc file .mjpg</strong>
-                    <p style="font-size: 0.74rem; color: var(--text-dim); margin-top: 4px;">Có thể bắn trực tiếp qua Wi-Fi vào thẻ nhớ hoặc tải file <code>video.mjpg</code> về chép vào thẻ nhớ (hỗ trợ video dài hàng chục phút!)</p>
+                    <p style="font-size: 0.74rem; color: var(--text-dim); margin-top: 4px;">Tự động mở khung cắt 1:1, đặt tên riêng lưu vào Thẻ nhớ qua mạng bất kỳ (LAN hoặc Khác Wi-Fi / 4G)!</p>
                 </div>
 
-                <div id="videoConfigPanel" style="display: none; flex-direction: column; gap: 10px; background: var(--bg-secondary); padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
-                    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-                        <canvas id="videoPreviewCanvas" width="240" height="240" style="width: 96px; height: 96px; background: #000; border: 2px solid var(--neon-green); border-radius: 8px;"></canvas>
-                        <div style="flex: 1; min-width: 190px; display: flex; flex-direction: column; gap: 6px;">
-                            <div id="videoFileInfo" style="font-size: 0.82rem; font-weight: 700; color: #fff;">video.mp4</div>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                                <div>
-                                    <label style="font-size: 0.72rem; color: var(--text-dim);">Tốc độ xuất:</label>
-                                    <select id="videoFpsSelect" style="width: 100%; background: var(--bg-card); color: var(--accent); border: 1px solid var(--border); padding: 5px; border-radius: 6px; font-size: 0.78rem;">
-                                        <option value="15">15 FPS (Siêu nhẹ)</option>
-                                        <option value="20" selected>20 FPS (Chuẩn mượt)</option>
-                                        <option value="24">24 FPS (Điện ảnh)</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label style="font-size: 0.72rem; color: var(--text-dim);">Thời lượng lấy:</label>
-                                    <select id="videoMaxSecSelect" style="width: 100%; background: var(--bg-card); color: var(--accent); border: 1px solid var(--border); padding: 5px; border-radius: 6px; font-size: 0.78rem;">
-                                        <option value="15" selected>15 giây (Nhanh Wi-Fi)</option>
-                                        <option value="30">30 giây</option>
-                                        <option value="60">60 giây</option>
-                                        <option value="0">Toàn bộ Video (Chép thẻ SD)</option>
-                                    </select>
+                <div id="videoConfigPanel" style="display: none; flex-direction: column; gap: 12px; background: var(--bg-secondary); padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
+                    <div id="videoFileInfo" style="font-size: 0.84rem; font-weight: 700; color: #fff;">video.mp4</div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px;">
+                        <div>
+                            <label style="font-size: 0.73rem; color: var(--neon-green); font-weight: 700;">📝 Tên Video lưu trên Thẻ nhớ:</label>
+                            <input type="text" id="videoSaveName" class="ws-input" value="video_30fps.mjpg" placeholder="VD: anime_30fps.mjpg" style="width: 100%; box-sizing: border-box; margin-top: 3px; padding: 6px 8px; font-size: 0.82rem;">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.73rem; color: var(--text-dim);">Tốc độ khung hình (FPS):</label>
+                            <select id="videoFpsSelect" style="width: 100%; margin-top: 3px; background: var(--bg-card); color: var(--neon-green); border: 1px solid var(--border); padding: 6px; border-radius: 6px; font-size: 0.8rem; font-weight: 700;">
+                                <option value="30" selected>30 FPS (Chuẩn mượt khuyên dùng)</option>
+                                <option value="35">35 FPS (Siêu mượt Dual-Core)</option>
+                                <option value="24">24 FPS (Điện ảnh - Nhẹ thẻ)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.73rem; color: var(--text-dim);">Thời lượng trích xuất:</label>
+                            <select id="videoMaxSecSelect" style="width: 100%; margin-top: 3px; background: var(--bg-card); color: var(--accent); border: 1px solid var(--border); padding: 6px; border-radius: 6px; font-size: 0.8rem;">
+                                <option value="15" selected>15 giây</option>
+                                <option value="30">30 giây</option>
+                                <option value="60">60 giây</option>
+                                <option value="0">Toàn bộ Video</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Khung cắt 1:1 cho Video MP4 -->
+                    <div id="videoCropWorkspace" class="crop-workspace" style="display: none; background: var(--bg-card); padding: 12px; border-radius: 8px; border: 1px solid var(--border); gap: 16px; justify-content: center; align-items: flex-start;">
+                        <div style="text-align: center;">
+                            <p style="font-size: 0.78rem; color: var(--text-dim); margin-bottom: 6px;">Kéo khung chọn vùng Video cần phát:</p>
+                            <div class="crop-stage" id="videoCropStage">
+                                <canvas id="videoCropSourceCanvas"></canvas>
+                                <div class="crop-box" id="videoCropBox">
+                                    <div class="crop-handle" id="videoCropHandle"></div>
                                 </div>
                             </div>
+                        </div>
+                        <div class="preview-pane">
+                            <p style="font-size: 0.78rem; color: var(--text-dim);">Xem trước 240×240:</p>
+                            <canvas id="videoPreviewCanvas" width="240" height="240" style="width: 200px; height: 200px; background: #000; border: 2px solid var(--neon-green); border-radius: 8px;"></canvas>
                         </div>
                     </div>
 
@@ -1274,7 +1295,7 @@
                         <div class="loading-header-row">
                             <div class="loading-title-group">
                                 <span class="pulse-icon">🎥</span>
-                                <span id="videoProgressTitle">Đang chuyển đổi Video 240×240...</span>
+                                <span id="videoProgressTitle">Đang chuyển đổi Video 240×240 (30 FPS)...</span>
                             </div>
                             <span class="loading-pct-badge" id="videoProgressPct">0%</span>
                         </div>
@@ -1283,39 +1304,25 @@
                         </div>
                         <div class="loading-detail-row">
                             <span id="videoProgressStatus">Đang trích xuất khung hình...</span>
-                            <span>MJPEG • 65K Colors</span>
+                            <span id="videoTransferModeBadge">30+ FPS • Mọi Mạng</span>
                         </div>
                     </div>
 
                     <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                        <button type="button" id="btnConvertUploadVideo" class="btn" style="flex: 1; min-width: 190px; background: var(--neon-green); color: #000; font-weight: 700; font-size: 0.84rem;">
-                            🚀 Nạp Wi-Fi vào Thẻ nhớ &amp; Chiếu ngay
+                        <button type="button" id="btnConvertUploadVideo" class="btn" style="flex: 1.3; min-width: 210px; background: var(--neon-green); color: #000; font-weight: 700; font-size: 0.85rem;">
+                            🚀 Cắt &amp; Tải Lên Thẻ Nhớ (Wi-Fi / 4G Từ Xa)
                         </button>
-                        <button type="button" id="btnConvertDownloadVideo" class="btn btn-secondary" style="flex: 1; min-width: 190px; font-size: 0.82rem;">
-                            💾 Tải file video.mjpg (Chép vào Thẻ SD)
+                        <button type="button" id="btnConvertDownloadVideo" class="btn btn-secondary" style="flex: 1; min-width: 180px; font-size: 0.82rem;">
+                            💾 Tải file .mjpg về máy (Chép trực tiếp Thẻ SD)
                         </button>
                     </div>
                 </div>
-
-                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                    <button type="button" id="btnPlaySdVideo" class="btn" style="flex: 1; background: #10b981; color: #000; font-weight: 700; font-size: 0.84rem;">
-                        ▶️ Phát Video trên Thẻ nhớ (/video.mjpg)
-                    </button>
-                    <button type="button" id="btnDeleteSdVideo" class="btn btn-danger" style="padding: 8px 14px; font-size: 0.82rem;">
-                        🗑️ Xóa Video
-                    </button>
-                </div>
             </div>
 
-            <!-- Các nút phát GIF -->
+            <!-- 4. CÁC HOẠT ẢNH GIF TÍCH HỢP SẴN TRONG CHIP -->
             <div style="display: flex; flex-direction: column; gap: 8px;">
-                <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">👾 Danh sách Hoạt ảnh GIF:
-                </div>
+                <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">👾 Hoạt ảnh GIF Tích Hợp Sẵn Trong Chip (Chuẩn nhịp gốc):</div>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;">
-                    <button id="btnPlayCustom" class="btn"
-                        style="padding: 12px; font-size: 0.9rem; justify-content: center; background: #00d26a; color: #000; font-weight: bold; display: none;">
-                        ▶️ Phát GIF Tùy Chọn Đã Lưu
-                    </button>
                     <button id="btnPlayEgo" class="btn"
                         style="padding: 12px; font-size: 0.9rem; justify-content: center; background: #9b30ff; color: #fff;">
                         🟣 Vegeta Ultra Ego (Aura tím)
@@ -1343,81 +1350,29 @@
                 </div>
             </div>
 
-            <!-- FPS Booster & Tăng tốc độ chuyển động -->
-            <div
-                style="background: var(--bg-card); padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px;">
-                <div
-                    style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
-                    <div>
-                        <strong style="font-size: 0.85rem; color: var(--text-main);">⚡ Tốc độ khung hình &amp; FPS
-                            Booster:</strong>
-                        <div style="font-size: 0.75rem; color: var(--text-dim);">Phần cứng SPI 40MHz &amp; DMA kép siêu
-                            mượt</div>
-                    </div>
-                    <span id="fpsBadge"
-                        style="font-size: 0.75rem; background: rgba(0,210,106,0.15); color: #00d26a; padding: 2px 8px; border-radius: 4px; font-weight: bold; border: 1px solid rgba(0,210,106,0.3);">60
-                        FPS</span>
-                </div>
-                <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-                    <button class="btn btn-fps" data-fps="0"
-                        style="padding: 6px 12px; font-size: 0.8rem; background: #ff4757; color: #fff; font-weight: bold;">🚀
-                        Max Turbo (~80 FPS)</button>
-                    <button class="btn btn-fps active" data-fps="60"
-                        style="padding: 6px 12px; font-size: 0.8rem; font-weight: bold;">⚡ 60 FPS (Mượt mà)</button>
-                    <button class="btn btn-fps btn-secondary" data-fps="50"
-                        style="padding: 6px 12px; font-size: 0.8rem;">🎯 50 FPS</button>
-                    <button class="btn btn-fps btn-secondary" data-fps="30"
-                        style="padding: 6px 12px; font-size: 0.8rem;">🎬 30 FPS</button>
-                    <button class="btn btn-fps btn-secondary" data-fps="-1"
-                        style="padding: 6px 12px; font-size: 0.8rem;">⏱️ Gốc (1x)</button>
-                    <button class="btn btn-fps btn-secondary" data-fps="-2"
-                        style="padding: 6px 12px; font-size: 0.8rem;">⏩ 1.5x</button>
-                    <button class="btn btn-fps btn-secondary" data-fps="-3"
-                        style="padding: 6px 12px; font-size: 0.8rem;">⏩ 2.0x</button>
-                </div>
-            </div>
-
             <!-- Hệ màu màn hình (Sửa lệch màu Đỏ / Xanh) -->
             <div
                 style="background: var(--bg-card); padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
                 <div>
-                    <strong style="font-size: 0.85rem; color: var(--text-main);">🎨 Hệ màu màn hình (Sửa lệch màu
-                        Đỏ/Xanh):</strong>
-                    <div style="font-size: 0.75rem; color: var(--text-dim);" id="colorOrderDesc">Đang dùng: RGB (Chuẩn
-                        RGB - Đỏ = Đỏ, Xanh = Xanh)</div>
+                    <strong style="font-size: 0.85rem; color: var(--text-main);">🎨 Hệ màu màn hình (Sửa lệch màu Đỏ/Xanh):</strong>
+                    <div style="font-size: 0.75rem; color: var(--text-dim);" id="colorOrderDesc">Đang dùng: RGB (Chuẩn RGB - Đỏ = Đỏ, Xanh = Xanh)</div>
                 </div>
                 <button id="btnToggleColorOrder" class="btn"
                     style="padding: 6px 14px; font-size: 0.8rem; background: #3b82f6; color: #fff; font-weight: bold;">🔄
                     Đổi sang BGR</button>
             </div>
 
-            <!-- Căn chỉnh vị trí hiển thị (Tránh bị cuộn xuống) -->
+            <!-- Căn chỉnh vị trí hiển thị -->
             <div
                 style="background: var(--bg-card); padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
                 <div>
-                    <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">📐 Căn vị trí hiển thị
-                        (Tránh bị cuộn / lệch khung):</div>
-                    <div style="font-size: 0.75rem; color: var(--text-dim);">Khớp chuẩn với lăng kính hologram của bạn
-                    </div>
+                    <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">📐 Căn vị trí hiển thị (Tránh lệch khung):</div>
+                    <div style="font-size: 0.75rem; color: var(--text-dim);">Khớp chuẩn với lăng kính hologram 240×240 của bạn</div>
                 </div>
                 <div style="display: flex; gap: 6px;">
-                    <button id="btnAlignTop" class="btn active" style="padding: 6px 12px; font-size: 0.8rem;">📌 Sát mép
-                        trên (y=0)</button>
-                    <button id="btnAlignCenter" class="btn btn-secondary"
-                        style="padding: 6px 12px; font-size: 0.8rem;">⚖️ Căn giữa (y=40)</button>
+                    <button id="btnAlignTop" class="btn active" style="padding: 6px 12px; font-size: 0.8rem;">📌 Sát mép trên (y=0)</button>
+                    <button id="btnAlignCenter" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;">⚖️ Căn giữa</button>
                 </div>
-            </div>
-
-            <div
-                style="background: var(--bg-card); padding: 14px; border-radius: 8px; border: 1px solid var(--border);">
-                <strong style="font-size: 0.85rem; color: var(--text-main);">💡 Lưu ý về ảnh động GIF Hologram:</strong>
-                <ul
-                    style="font-size: 0.8rem; color: var(--text-dim); margin-top: 8px; padding-left: 18px; line-height: 1.6;">
-                    <li>Mỗi khi chọn hoặc úp GIF mới, hệ thống sẽ tự động xóa sạch màn hình cũ trước khi phát hoạt ảnh
-                        mới để không bao giờ bị trùng đè ảnh.</li>
-                    <li>Màu đen (#000000) trên màn hình sẽ biến mất hoàn toàn khi chiếu qua lăng kính mica, tạo hiệu ứng
-                        vật thể 3D bay lơ lửng.</li>
-                </ul>
             </div>
         </div>
     </div>
@@ -1438,16 +1393,20 @@
                             style="display: block; width: 100%; height: 100%; image-rendering: pixelated;"></canvas>
                     </div>
                     <div class="canvas-hud-footer" style="max-width: 280px;">
-                        <span>Trạm Không Gian &amp; Thời Tiết</span>
-                        <span id="clockFpsCounter">1 FPS Tick</span>
+                        <span>🐱 Kawaii Space Cat • Sprite PSRAM</span>
+                        <span id="clockFpsCounter">0% Chớp Giật</span>
                     </div>
                 </div>
 
                 <div
                     style="width: 100%; max-width: 280px; display: flex; flex-direction: column; gap: 8px; margin-top: 4px;">
                     <button id="btnPlayClockOnCube" class="btn"
-                        style="width: 100%; min-height: 46px; font-size: 0.95rem; font-weight: bold; background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); color: #000; box-shadow: 0 0 16px rgba(0, 242, 254, 0.45);">
-                        🚀 Chiếu Đồng Hồ Lên Cube
+                        style="width: 100%; min-height: 46px; font-size: 0.95rem; font-weight: bold; background: linear-gradient(135deg, #ff75b5 0%, #4cedff 100%); color: #000; box-shadow: 0 0 16px rgba(255, 117, 181, 0.45);">
+                        🐱 Chiếu Đồng Hồ Kawaii Lên Cube
+                    </button>
+                    <button id="btnCubeWifiGeo" class="btn btn-secondary"
+                        style="width: 100%; min-height: 38px; font-size: 0.82rem; border-color: var(--neon-green); color: var(--neon-green);">
+                        📡 Để Cube Tự Lấy Vị Trí Theo Wi-Fi Nhà
                     </button>
                     <button id="btnSyncClockNow" class="btn btn-secondary"
                         style="width: 100%; min-height: 38px; font-size: 0.82rem;">
@@ -1462,43 +1421,41 @@
                 <div
                     style="background: var(--bg-card); padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <strong style="font-size: 0.88rem; color: var(--accent);">🏙️ Chọn Vị Trí &amp; Thời
-                            Tiết:</strong>
-                        <span id="weatherStatusBadge" style="font-size: 0.72rem; color: var(--neon-green);">● Sẵn
-                            sàng</span>
+                        <strong style="font-size: 0.88rem; color: var(--accent);">📶 Định Vị Tự Động Theo Wi-Fi &amp; Thời Tiết:</strong>
+                        <span id="weatherStatusBadge" style="font-size: 0.72rem; color: var(--neon-green);">● Đang lấy vị trí Wi-Fi...</span>
                     </div>
 
                     <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-                        <button type="button" class="btn btn-secondary btn-city" data-city="Seoul" data-country="KR"
-                            data-lat="37.5665" data-lon="126.9780" style="padding: 6px 10px; font-size: 0.78rem;">🇰🇷
-                            Seoul</button>
+                        <button type="button" class="btn btn-secondary" id="btnAutoGeoLocation"
+                            style="padding: 6px 12px; font-size: 0.8rem; background: rgba(0, 242, 254, 0.16); color: var(--accent); border-color: var(--accent); font-weight: 700;">📶
+                            Lấy Vị Trí Theo Wi-Fi Hiện Tại</button>
                         <button type="button" class="btn btn-secondary btn-city" data-city="TP.HCM" data-country="VN"
                             data-lat="10.8231" data-lon="106.6297" style="padding: 6px 10px; font-size: 0.78rem;">🇻🇳
                             TP.HCM</button>
-                        <button type="button" class="btn btn-secondary btn-city" data-city="Hà Nội" data-country="VN"
+                        <button type="button" class="btn btn-secondary btn-city" data-city="Ha Noi" data-country="VN"
                             data-lat="21.0285" data-lon="105.8542" style="padding: 6px 10px; font-size: 0.78rem;">🇻🇳
                             Hà Nội</button>
-                        <button type="button" class="btn btn-secondary btn-city" data-city="Đà Nẵng" data-country="VN"
+                        <button type="button" class="btn btn-secondary btn-city" data-city="Da Nang" data-country="VN"
                             data-lat="16.0544" data-lon="108.2022" style="padding: 6px 10px; font-size: 0.78rem;">🇻🇳
                             Đà Nẵng</button>
+                        <button type="button" class="btn btn-secondary btn-city" data-city="Seoul" data-country="KR"
+                            data-lat="37.5665" data-lon="126.9780" style="padding: 6px 10px; font-size: 0.78rem;">🇰🇷
+                            Seoul</button>
                         <button type="button" class="btn btn-secondary btn-city" data-city="Tokyo" data-country="JP"
                             data-lat="35.6762" data-lon="139.6503" style="padding: 6px 10px; font-size: 0.78rem;">🇯🇵
                             Tokyo</button>
-                        <button type="button" class="btn btn-secondary" id="btnAutoGeoLocation"
-                            style="padding: 6px 10px; font-size: 0.78rem; background: rgba(0, 242, 254, 0.15); color: var(--accent); border-color: var(--accent);">📍
-                            Vị trí hiện tại (GPS)</button>
                     </div>
 
                     <!-- Ô nhập tùy chỉnh -->
                     <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 8px; margin-top: 4px;">
                         <div>
                             <label style="font-size: 0.75rem; color: var(--text-dim);">Tên thành phố:</label>
-                            <input type="text" id="clockCityInput" class="ws-input" value="Seoul"
+                            <input type="text" id="clockCityInput" class="ws-input" value="TP.HCM"
                                 style="width: 100%; box-sizing: border-box; padding: 6px 8px; font-size: 0.85rem;">
                         </div>
                         <div>
                             <label style="font-size: 0.75rem; color: var(--text-dim);">Quốc gia:</label>
-                            <input type="text" id="clockCountryInput" class="ws-input" value="KR" maxlength="4"
+                            <input type="text" id="clockCountryInput" class="ws-input" value="VN" maxlength="4"
                                 style="width: 100%; box-sizing: border-box; padding: 6px 8px; font-size: 0.85rem;">
                         </div>
                     </div>
@@ -2131,6 +2088,8 @@
 
             for (let i = 0; i < numFrames; i++) {
                 const info = reader.frameInfo(i);
+                const prevSnapshot = (info.disposal === 3) ? new Uint8ClampedArray(rgba) : null;
+
                 reader.decodeAndBlitFrameRGBA(i, rgba);
 
                 const frameCanvas = document.createElement('canvas');
@@ -2140,7 +2099,24 @@
                 const imgData = new ImageData(new Uint8ClampedArray(rgba), width, height);
                 fCtx.putImageData(imgData, 0, 0);
 
-                const delayMs = info.delay ? info.delay * 10 : 50;
+                // Xử lý chuẩn disposal GIF89a để không bị bóng ma đè hình
+                if (info.disposal === 2) {
+                    const fx0 = Math.max(0, info.x || 0);
+                    const fy0 = Math.max(0, info.y || 0);
+                    const fx1 = Math.min(width, fx0 + (info.width || width));
+                    const fy1 = Math.min(height, fy0 + (info.height || height));
+                    for (let py = fy0; py < fy1; py++) {
+                        for (let px = fx0; px < fx1; px++) {
+                            const off = (py * width + px) * 4;
+                            rgba[off] = 0; rgba[off + 1] = 0; rgba[off + 2] = 0; rgba[off + 3] = 0;
+                        }
+                    }
+                } else if (info.disposal === 3 && prevSnapshot) {
+                    rgba.set(prevSnapshot);
+                }
+
+                // Chuẩn trình duyệt GIF89a: nếu delay <= 1 (0ms hoặc 10ms) thì dùng 80ms tự nhiên để không bị tua nhanh!
+                const delayMs = (info.delay && info.delay > 1) ? (info.delay * 10) : 80;
                 frames.push({
                     canvas: frameCanvas,
                     delay: delayMs
@@ -2155,11 +2131,14 @@
             };
         }
         // ====================================================================
-        // QUẢN LÝ KẾT NỐI (CLOUD 4G qua HiveMQ & MẠNG NỘI BỘ qua WebSocket)
+        // QUẢN LÝ KẾT NỐI (CLOUD 4G / KHÁC WI-FI qua HiveMQ & LAN WebSocket)
         // ====================================================================
         let ws = null;
         let mqttClient = null;
-        let currentConnType = 'cloud'; // 'cloud' hoặc 'lan'
+        let currentConnType = 'cloud';
+        let pendingUploadAckResolver = null;
+        let pendingUploadAckTargetSeq = -1;
+        let latestMediaListData = null;
 
         const connTypeSelect = document.getElementById('connTypeSelect');
         const connInput = document.getElementById('connInput');
@@ -2171,6 +2150,57 @@
         function log(msg) {
             const time = new Date().toLocaleTimeString();
             logBox.innerHTML = `[${time}] ${msg}<br>` + logBox.innerHTML;
+        }
+
+        function handleIncomingCubeMessage(rawText) {
+            if (!rawText || typeof rawText !== 'string') return;
+            const trimmed = rawText.trim();
+            if (!trimmed.startsWith('{')) {
+                log(`Cube: ${trimmed}`);
+                return;
+            }
+            try {
+                const msg = JSON.parse(trimmed);
+                if (msg.type === 'upload_ack') {
+                    if (pendingUploadAckResolver && typeof msg.seq === 'number' && msg.seq >= pendingUploadAckTargetSeq) {
+                        const r = pendingUploadAckResolver;
+                        pendingUploadAckResolver = null;
+                        r(msg);
+                    }
+                    return;
+                }
+                if (msg.type === 'upload_done') {
+                    if (pendingUploadAckResolver) {
+                        const r = pendingUploadAckResolver;
+                        pendingUploadAckResolver = null;
+                        r(msg);
+                    }
+                    return;
+                }
+                if (msg.type === 'media_list') {
+                    latestMediaListData = msg;
+                    if (typeof renderSdMediaListUI === 'function') {
+                        renderSdMediaListUI(msg);
+                    }
+                    return;
+                }
+                if (msg.type === 'clock_geo') {
+                    if (msg.city && document.getElementById('clockCityInput')) document.getElementById('clockCityInput').value = msg.city;
+                    if (msg.country && document.getElementById('clockCountryInput')) document.getElementById('clockCountryInput').value = msg.country;
+                    if (msg.temp !== undefined && document.getElementById('clockTempInput')) document.getElementById('clockTempInput').value = msg.temp;
+                    if (msg.maxTemp !== undefined && document.getElementById('clockMaxTempInput')) document.getElementById('clockMaxTempInput').value = msg.maxTemp;
+                    if (msg.humidity !== undefined && document.getElementById('clockHumidityInput')) document.getElementById('clockHumidityInput').value = msg.humidity;
+                    if (msg.weather && document.getElementById('clockWeatherSelect')) document.getElementById('clockWeatherSelect').value = msg.weather;
+                    const badge = document.getElementById('weatherStatusBadge');
+                    if (badge) {
+                        badge.textContent = `● Wi-Fi Cube: ${msg.city} (${msg.temp}°C, ${msg.weather})`;
+                        badge.style.color = 'var(--neon-green)';
+                    }
+                    log(`📡 Cube đã tự lấy vị trí theo Wi-Fi nhà: ${msg.city} (${msg.country}), ${msg.temp}°C`);
+                    return;
+                }
+            } catch (e) { }
+            log(`Cube: ${trimmed}`);
         }
 
         // Khôi phục cấu hình từ localStorage
@@ -2195,22 +2225,23 @@
 
         function updateInputPlaceholder() {
             if (currentConnType === 'cloud') {
-                connInput.placeholder = "Mã thiết bị Cube (VD: HOLO-FD9C)";
-                connInput.value = localStorage.getItem('hologram_device_id') || 'HOLO-FD9C';
+                connInput.placeholder = "Mã thiết bị Cube (VD: HOLO-B1D8)";
+                const savedId = localStorage.getItem('hologram_device_id');
+                connInput.value = (savedId && savedId !== 'HOLO-FD9C') ? savedId : 'HOLO-B1D8';
             } else {
                 connInput.placeholder = "ws://192.168.x.x:81";
-                if (localStorage.getItem('hologram_ws_url')) {
+                if (localStorage.getItem('hologram_ws_url') && !localStorage.getItem('hologram_ws_url').includes('192.168.1.59')) {
                     connInput.value = localStorage.getItem('hologram_ws_url');
-                } else if (window.location.hostname && window.location.protocol.startsWith('http')) {
+                } else if (window.location.hostname && /^(\d{1,3}\.){3}\d{1,3}$/.test(window.location.hostname)) {
                     connInput.value = `ws://${window.location.hostname}:81`;
                 } else {
-                    connInput.value = "ws://192.168.4.1:81";
+                    connInput.value = "192.168.1.233";
                 }
             }
         }
 
         function getDeviceId() {
-            return (connInput.value.trim().toUpperCase()) || 'HOLO-FD9C';
+            return (connInput.value.trim().toUpperCase()) || 'HOLO-B1D8';
         }
 
         function isConnected() {
@@ -2250,16 +2281,15 @@
             }
 
             const val = connInput.value.trim();
-            // Tự động nhận diện nếu người dùng nhập IP (hoặc mở web qua IP)
             const isIp = /^(\d{1,3}\.){3}\d{1,3}/.test(val) || val.includes(':81') || val.includes('localhost');
-            if (isIp) {
+            if (isIp && window.location.protocol !== 'https:') {
                 currentConnType = 'lan';
                 if (connTypeSelect) connTypeSelect.value = 'lan';
                 connectLocalWs();
                 return;
             }
 
-            if (currentConnType === 'cloud') {
+            if (currentConnType === 'cloud' || window.location.protocol === 'https:') {
                 connectCloudMqtt();
             } else {
                 connectLocalWs();
@@ -2275,7 +2305,7 @@
                 return;
             }
 
-            log(`🌐 Đang kết nối tới Cloud Broker (HiveMQ) cho thiết bị: ${devId}...`);
+            log(`🌐 Đang kết nối Cloud (Khác Wi-Fi / 4G) tới Cube [${devId}]...`);
             statusText.textContent = "Đang kết nối Cloud...";
             statusBadge.className = "status-badge";
 
@@ -2286,22 +2316,26 @@
                 mqttClient = mqtt.connect(brokerUrl, {
                     clientId: clientId,
                     clean: true,
-                    connectTimeout: 5000,
+                    connectTimeout: 6000,
                     reconnectPeriod: 3000
                 });
 
                 mqttClient.on('connect', () => {
-                    log(`🟢 Kết nối Cloud thành công! Đang điều khiển: [${devId}]`);
+                    log(`🟢 Kết nối từ xa thành công tới [${devId}]! Đang tải danh sách Thẻ nhớ...`);
                     statusText.textContent = `Cloud: ${devId}`;
                     statusBadge.className = "status-badge connected";
                     btnConnect.textContent = "Ngắt kết nối";
                     btnConnect.className = "btn btn-danger";
+                    const banner = document.getElementById('connWarningBanner');
+                    if (banner) banner.style.display = 'none';
 
-                    mqttClient.subscribe(`hologram/${devId}/status`);
+                    mqttClient.subscribe(`hologram/${devId}/status`, () => {
+                        sendCommand({ cmd: "list_media" });
+                    });
                 });
 
                 mqttClient.on('message', (topic, payload) => {
-                    log(`Cube [${topic}]: ${payload.toString()}`);
+                    handleIncomingCubeMessage(payload.toString());
                 });
 
                 mqttClient.on('error', (err) => {
@@ -2332,7 +2366,7 @@
         function connectLocalWs() {
             const rawVal = connInput.value.trim();
             if (!rawVal) {
-                alert("Vui lòng nhập địa chỉ IP của Cube (VD: 192.168.1.59)");
+                alert("Vui lòng nhập địa chỉ IP của Cube (VD: 192.168.1.233) hoặc chọn chế độ Khác Wi-Fi / 4G (HOLO-B1D8)");
                 return;
             }
             const wsUrl = formatWsUrl(rawVal);
@@ -2351,13 +2385,14 @@
 
                 ws.onopen = () => {
                     currentConnType = 'lan';
-                    log(`🟢 Kết nối WebSocket LAN thành công tới ${hostOnly}!`);
+                    log(`🟢 Kết nối LAN thành công tới ${hostOnly}! Đang tải danh sách Thẻ nhớ...`);
                     statusText.textContent = `LAN: ${hostOnly}`;
                     statusBadge.className = "status-badge connected";
                     btnConnect.textContent = "Ngắt kết nối";
                     btnConnect.className = "btn btn-danger";
                     const banner = document.getElementById('connWarningBanner');
                     if (banner) banner.style.display = 'none';
+                    sendCommand({ cmd: "list_media" });
                 };
 
                 ws.onclose = () => {
@@ -2368,18 +2403,19 @@
                     btnConnect.className = "btn";
                 };
 
-                ws.onerror = (err) => {
-                    log(`⚠️ Không thể kết nối tới ${wsUrl}. Hãy chắc chắn điện thoại/máy tính đang cùng Wi-Fi với Cube!`);
+                ws.onerror = () => {
+                    log(`⚠️ Không kết nối được LAN ${wsUrl}. Nếu bạn đang dùng khác Wi-Fi hoặc 4G, hãy chọn "🌐 Khác Wi-Fi / 4G (Cloud)" và nhập mã HOLO-B1D8!`);
                     statusText.textContent = "Lỗi kết nối IP";
                     statusBadge.className = "status-badge";
                 };
 
                 ws.onmessage = (event) => {
-                    log(`Cube: ${event.data}`);
+                    if (typeof event.data === 'string') {
+                        handleIncomingCubeMessage(event.data);
+                    }
                 };
             } catch (e) {
                 log(`Lỗi khởi tạo WebSocket: ${e.message}`);
-                alert(`Lỗi kết nối IP: ${e.message}`);
             }
         }
 
@@ -2388,7 +2424,7 @@
         // Hàm phát lệnh JSON thống nhất
         function sendCommand(obj) {
             if (!isConnected()) {
-                showConnWarning("⚠️ Chưa kết nối với Cube! Nét vẽ chưa truyền lên màn hình. Hãy bấm <strong>Kết nối</strong> ở trên.");
+                showConnWarning("⚠️ Chưa kết nối với Cube! Hãy nhập IP hoặc mã Cloud (HOLO-B1D8) rồi bấm <strong>Kết nối</strong>.");
                 return false;
             }
             const msg = JSON.stringify(obj);
@@ -2403,7 +2439,7 @@
             return false;
         }
 
-        // Hàm phát khối nhị phân hình ảnh thống nhất
+        // Hàm phát khối nhị phân hình ảnh / file thống nhất
         function sendBinaryChunk(buffer) {
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(buffer);
@@ -2413,8 +2449,7 @@
                 mqttClient.publish(`hologram/${devId}/chunk`, new Uint8Array(buffer));
                 return true;
             }
-            alert("⚠️ Chưa kết nối tới Cube! Vui lòng bấm Kết nối ở trên (IP: 192.168.1.59)");
-            showConnWarning("⚠️ Chưa kết nối tới Cube! Hãy nhập IP và bấm Kết nối.");
+            showConnWarning("⚠️ Chưa kết nối tới Cube! Hãy bấm Kết nối ở thanh trên.");
             return false;
         }
 
@@ -2943,14 +2978,26 @@
 
 
 
+        const btnSnapFullTab2 = document.getElementById('btnSnapFullTab2');
+        if (btnSnapFullTab2) {
+            btnSnapFullTab2.addEventListener('click', () => {
+                if (!cropSourceCanvas || !cropSourceCanvas.width) return;
+                const side = Math.min(cropSourceCanvas.width, cropSourceCanvas.height);
+                cropState.w = side;
+                cropState.h = side;
+                cropState.x = Math.round((cropSourceCanvas.width - side) / 2);
+                cropState.y = Math.round((cropSourceCanvas.height - side) / 2);
+                updateCropBoxView();
+                updatePreview();
+            });
+        }
+
         btnSendCropped.addEventListener('click', () => {
             if (gifFrames && gifFrames.length > 1) {
-                const choice = confirm(`Ảnh bạn tải lên là GIF ĐỘNG!
-
-• Bấm [OK] để NẠP GIF ĐỘNG VÀO FLASH CUBE (Phát mượt mà 60 FPS)
-• Bấm [Cancel] để chỉ gửi 1 khung hình tĩnh.`);
+                const choice = confirm(`Ảnh bạn tải lên là GIF ĐỘNG!\n\n• Bấm [OK] để LƯU GIF ĐỘNG ĐÃ CẮT VÀO THẺ NHỚ & CHIẾU (Chuẩn nhịp 1:1)\n• Bấm [Cancel] để chỉ gửi 1 khung hình tĩnh.`);
                 if (choice) {
-                    if (btnUploadCroppedGif) btnUploadCroppedGif.click();
+                    const btnUp = document.getElementById('btnUploadCroppedGif');
+                    if (btnUp) btnUp.click();
                     return;
                 }
             }
@@ -2996,7 +3043,7 @@
             previewCtx.drawImage(f.canvas, srcX, srcY, srcW, srcH, 0, 0, 240, 240);
 
             tab2FrameIdx = (tab2FrameIdx + 1) % gifFrames.length;
-            tab2PreviewTimer = setTimeout(renderTab2GifPreviewLoop, Math.max(f.delay || 50, 20));
+            tab2PreviewTimer = setTimeout(renderTab2GifPreviewLoop, Math.max(f.delay || 80, 20));
         }
 
         function loadImageFile(file) {
@@ -3010,6 +3057,8 @@
             if (gifFrameInfo) gifFrameInfo.style.display = 'none';
             const btnUploadCroppedGif = document.getElementById('btnUploadCroppedGif');
             if (btnUploadCroppedGif) btnUploadCroppedGif.style.display = 'none';
+            const tab2GifNameWrap = document.getElementById('tab2GifNameWrap');
+            if (tab2GifNameWrap) tab2GifNameWrap.style.display = 'none';
 
             const pBar = document.getElementById('progressBarContainer');
             const pFill = document.getElementById('progressBarFill');
@@ -3031,25 +3080,31 @@
 
                         if (parsed && parsed.frames && parsed.frames.length > 0) {
                             gifFrames = parsed.frames;
-                            log(`🎞️ Đã giải mã GIF động: ${gifFrames.length} khung hình (${parsed.width}x${parsed.height}px)`);
+                            log(`🎞️ Đã giải mã GIF: ${gifFrames.length} khung hình (${parsed.width}×${parsed.height}px) - Hãy kéo khung cắt bên dưới!`);
 
                             loadedImage = gifFrames[0].canvas;
                             cropWorkspace.style.display = 'flex';
                             setupCropper();
 
-                            if (gifFrames.length > 1) {
-                                startTab2GifPreviewAnimation();
-                                if (btnSendGifAnim) {
+                            const nameInp = document.getElementById('tab2GifSaveName');
+                            if (nameInp && typeof sanitizeClientMediaName === 'function') {
+                                nameInp.value = sanitizeClientMediaName(file.name, '.gif');
+                            }
+                            if (tab2GifNameWrap) tab2GifNameWrap.style.display = 'block';
+
+                            if (gifFrames.length >= 1) {
+                                if (gifFrames.length > 1) startTab2GifPreviewAnimation();
+                                if (btnSendGifAnim && gifFrames.length > 1) {
                                     btnSendGifAnim.style.display = 'block';
                                     btnSendGifAnim.textContent = `🎞️ Gửi GIF động trực tiếp (${gifFrames.length} frames)`;
                                 }
                                 if (btnUploadCroppedGif) {
                                     btnUploadCroppedGif.style.display = 'block';
-                                    btnUploadCroppedGif.textContent = `💾 Nạp GIF đã cắt vào Flash Cube (60 FPS)`;
+                                    btnUploadCroppedGif.textContent = `💾 Lưu GIF đã cắt vào Thẻ nhớ & Chiếu`;
                                 }
                                 if (gifFrameInfo) {
                                     gifFrameInfo.style.display = 'block';
-                                    gifFrameInfo.textContent = `🎬 ${gifFrames.length} frames, ${parsed.width}×${parsed.height}px ➔ Ô xem trước đang phát hoạt ảnh!`;
+                                    gifFrameInfo.textContent = `🎬 ${gifFrames.length} frames (${parsed.width}×${parsed.height}px) • Đang phát đúng tốc độ gốc 1:1`;
                                 }
                             }
                             if (pBar) pBar.style.display = 'none';
@@ -3399,83 +3454,160 @@
         }
 
         // ====================================================================
-        // CÁC HÀM XỬ LÝ & NÉN ẢNH GIF CHUẨN HOLOGRAM 240x240
+        // HỆ THỐNG TRUYỀN FILE ĐA MẠNG (LAN HTTP & CLOUD 4G / KHÁC WI-FI SLIDING ACK)
         // ====================================================================
-        function isLocalNetworkIp() {
-            const host = window.location.hostname;
-            return /^192\.168\.|^10\.|^172\.(1[6-9]|2\d|3[01])\.|^localhost$|^127\.0\.0\.1$/.test(host);
+        function sanitizeClientMediaName(rawName, defExt = '.gif') {
+            let s = String(rawName || '').trim();
+            s = s.split('/').pop().split('\\').pop();
+            let ext = defExt;
+            const dot = s.lastIndexOf('.');
+            if (dot > 0) {
+                const cand = s.slice(dot).toLowerCase();
+                if (cand === '.gif' || cand === '.mjpg' || cand === '.mjpeg') ext = cand;
+                s = s.slice(0, dot);
+            }
+            // Bỏ dấu tiếng Việt cơ bản sang không dấu gọn đẹp
+            s = s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
+            s = s.replace(/[^a-zA-Z0-9_-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 38);
+            if (!s) s = (ext === '.gif') ? 'gif_holo' : 'video_holo';
+            return s + ext;
         }
 
-        // Tải file GIF qua HTTP POST trực tiếp nếu ở mạng LAN (Tốc độ cao & cực kỳ ổn định)
-        function uploadGifViaHttp(blob) {
-            return new Promise((resolve, reject) => {
-                let uploadUrl = '/upload_gif';
-                if (currentConnType === 'lan' && connInput && connInput.value) {
-                    const val = connInput.value.trim();
-                    const host = val.replace(/^wss?:\/\//, '').split(':')[0];
-                    if (host && /^(\d{1,3}\.){3}\d{1,3}$/.test(host)) {
-                        uploadUrl = `http://${host}/upload_gif`;
-                    }
+        function getCubeHttpOrigin() {
+            if (window.location.protocol === 'https:') return '';
+            if (currentConnType === 'lan' && connInput && connInput.value) {
+                const host = connInput.value.trim().replace(/^wss?:\/\//i, '').replace(/^https?:\/\//i, '').split(':')[0];
+                if (host && /^(\d{1,3}\.){3}\d{1,3}$/.test(host)) {
+                    return `http://${host}`;
                 }
+            }
+            if (/^(\d{1,3}\.){3}\d{1,3}$/.test(window.location.hostname)) {
+                return `http://${window.location.hostname}`;
+            }
+            return '';
+        }
+
+        function uploadMediaViaHttp(blob, fileName, onProgress) {
+            return new Promise((resolve, reject) => {
+                const origin = getCubeHttpOrigin();
+                if (!origin) return reject(new Error('No HTTP LAN origin'));
+                const safeName = sanitizeClientMediaName(fileName, fileName.toLowerCase().endsWith('.mjpg') ? '.mjpg' : '.gif');
+                const uploadUrl = `${origin}/upload_media?name=${encodeURIComponent(safeName)}&play=1`;
+
                 const formData = new FormData();
-                formData.append('file', blob, 'custom.gif');
+                formData.append('file', blob, safeName);
                 const xhr = new XMLHttpRequest();
                 xhr.open('POST', uploadUrl, true);
                 xhr.upload.onprogress = (e) => {
-                    if (e.lengthComputable) {
+                    if (e.lengthComputable && onProgress) {
                         const pct = Math.round((e.loaded / e.total) * 100);
-                        if (gifUploadProgressFill) gifUploadProgressFill.style.width = pct + '%';
-                        const t3Pct = document.getElementById('tab3LoadingPct');
-                        if (t3Pct) t3Pct.textContent = pct + '%';
-                        if (gifUploadStatusText) gifUploadStatusText.textContent = `Đang nạp LAN: ${pct}% (${Math.round(e.loaded / 1024)}/${Math.round(e.total / 1024)} KB)`;
+                        onProgress(pct, e.loaded, e.total, 'LAN Wi-Fi');
                     }
                 };
                 xhr.onload = () => {
                     if (xhr.status >= 200 && xhr.status < 300) {
-                        resolve();
+                        resolve(safeName);
                     } else {
-                        reject(new Error(`HTTP ${xhr.status}: ${xhr.statusText}`));
+                        reject(new Error(`HTTP ${xhr.status}`));
                     }
                 };
-                xhr.onerror = () => reject(new Error("Lỗi kết nối HTTP LAN tới Cube"));
-                xhr.timeout = 25000;
-                xhr.ontimeout = () => reject(new Error("Hết thời gian tải lên (Timeout)"));
+                xhr.onerror = () => reject(new Error('LAN HTTP unreachable'));
+                xhr.timeout = 300000;
+                xhr.ontimeout = () => reject(new Error('LAN HTTP Timeout'));
                 xhr.send(formData);
             });
         }
 
-        // Tải file GIF qua Cloud MQTT theo khối nhị phân 1024 bytes (Dành cho 4G từ xa)
-        async function uploadGifViaMqttChunks(blob) {
+        function waitForUploadAck(expectedSeq, timeoutMs = 4500) {
+            return new Promise((resolve, reject) => {
+                pendingUploadAckTargetSeq = expectedSeq;
+                const timer = setTimeout(() => {
+                    if (pendingUploadAckResolver) {
+                        pendingUploadAckResolver = null;
+                        reject(new Error('ACK timeout'));
+                    }
+                }, timeoutMs);
+                pendingUploadAckResolver = (msg) => {
+                    clearTimeout(timer);
+                    resolve(msg);
+                };
+            });
+        }
+
+        // Truyền file lớn (cả GIF & Video hàng chục MB) qua mạng khác Wi-Fi / 4G với cơ chế xác nhận từng khối (Sliding ACK 0x55)
+        async function uploadMediaViaRemoteAck(blob, fileName, onProgress) {
+            if (!isConnected()) {
+                throw new Error('Chưa kết nối tới Cube (Hãy nhập mã Cloud HOLO-B1D8 hoặc IP và bấm Kết nối)');
+            }
+            const safeName = sanitizeClientMediaName(fileName, fileName.toLowerCase().endsWith('.mjpg') ? '.mjpg' : '.gif');
             const arrayBuffer = await blob.arrayBuffer();
             const totalBytes = arrayBuffer.byteLength;
-            const CHUNK_SIZE = 1024;
-            const totalChunks = Math.ceil(totalBytes / CHUNK_SIZE);
+            const CHUNK_SIZE = 8192; // 8KB/gói tối ưu cho HiveMQ WSS & ESP32-S3 16KB MQTT buffer
+            const totalChunks = Math.max(1, Math.ceil(totalBytes / CHUNK_SIZE));
 
-            for (let i = 0; i < totalChunks; i++) {
-                const offset = i * CHUNK_SIZE;
-                const chunkLen = Math.min(CHUNK_SIZE, totalBytes - offset);
-                let flags = 0x02; // DATA
-                if (i === 0) flags |= 0x01; // START
-                if (i === totalChunks - 1) flags |= 0x04; // END
-
-                const packet = new Uint8Array(5 + chunkLen);
-                packet[0] = 0x47; // 'G'
-                packet[1] = flags;
-                packet[2] = i & 0xFF;
-                packet[3] = (chunkLen >> 8) & 0xFF;
-                packet[4] = chunkLen & 0xFF;
-                packet.set(new Uint8Array(arrayBuffer, offset, chunkLen), 5);
-
-                sendBinaryChunk(packet.buffer);
-
-                const pct = Math.round(((i + 1) / totalChunks) * 100);
-                if (gifUploadProgressFill) gifUploadProgressFill.style.width = pct + '%';
-                const t3Pct = document.getElementById('tab3LoadingPct');
-                if (t3Pct) t3Pct.textContent = pct + '%';
-                if (gifUploadStatusText) gifUploadStatusText.textContent = `Đang truyền 4G: ${pct}% (${i + 1}/${totalChunks})`;
-
-                await new Promise(r => setTimeout(r, 20));
+            // Bước 1: Gửi lệnh mở file trên thẻ nhớ MicroSD và chờ ACK seq=0
+            let startAcked = false;
+            for (let attempt = 0; attempt < 3 && !startAcked; attempt++) {
+                const ackPromise = waitForUploadAck(0, 4500);
+                sendCommand({ cmd: 'upload_start', file: safeName, size: totalBytes });
+                try {
+                    const ack = await ackPromise;
+                    if (ack && ack.ok === false) {
+                        throw new Error('Không mở được file trên Thẻ nhớ Cube!');
+                    }
+                    startAcked = true;
+                } catch (e) {
+                    if (attempt === 2) throw new Error('Cube không phản hồi lệnh nhận file từ xa. Hãy kiểm tra Cube đang bật mạng!');
+                }
             }
+
+            // Bước 2: Gửi lần lượt từng khối 8KB kèm số thứ tự 16-bit, tự động gửi lại nếu rớt gói 4G
+            for (let seq = 0; seq < totalChunks; seq++) {
+                const offset = seq * CHUNK_SIZE;
+                const chunkLen = Math.min(CHUNK_SIZE, totalBytes - offset);
+                const packet = new Uint8Array(3 + chunkLen);
+                packet[0] = 0x55;
+                packet[1] = (seq >> 8) & 0xFF;
+                packet[2] = seq & 0xFF;
+                packet.set(new Uint8Array(arrayBuffer, offset, chunkLen), 3);
+
+                let chunkOk = false;
+                for (let retry = 0; retry < 5 && !chunkOk; retry++) {
+                    const ackPromise = waitForUploadAck(seq + 1, 4500);
+                    sendBinaryChunk(packet.buffer);
+                    try {
+                        await ackPromise;
+                        chunkOk = true;
+                    } catch (e) {
+                        if (retry === 4) {
+                            throw new Error(`Mạng 4G/Wi-Fi gián đoạn tại khối ${seq + 1}/${totalChunks}`);
+                        }
+                    }
+                }
+
+                if (onProgress) {
+                    const loaded = offset + chunkLen;
+                    const pct = Math.round((loaded / totalBytes) * 100);
+                    onProgress(pct, loaded, totalBytes, currentConnType === 'cloud' ? 'Cloud 4G/Wi-Fi' : 'WebSocket');
+                }
+            }
+
+            // Bước 3: Chốt đóng file & tự động trình chiếu ngay trên Cube
+            sendCommand({ cmd: 'upload_end', play: 1 });
+            return safeName;
+        }
+
+        // Tự động chọn kênh nhanh nhất: nếu cùng mạng LAN HTTP -> bắn HTTP tốc độ cao; nếu khác Wi-Fi / 4G / HTTPS -> bắn qua Cloud ACK!
+        async function uploadMediaSmart(blob, fileName, onProgress) {
+            const origin = getCubeHttpOrigin();
+            if (origin && currentConnType === 'lan') {
+                try {
+                    return await uploadMediaViaHttp(blob, fileName, onProgress);
+                } catch (lanErr) {
+                    console.warn('HTTP LAN không thông, tự động chuyển sang truyền khối có ACK:', lanErr);
+                }
+            }
+            return await uploadMediaViaRemoteAck(blob, fileName, onProgress);
         }
 
         // Tái tạo toàn bộ các khung hình GIF từ patch sang Canvas độc lập
@@ -3733,7 +3865,7 @@
             });
         }
 
-        // Nạp GIF đã cắt ở Tab 2 trực tiếp vào Flash Cube
+        // Nạp GIF đã cắt ở Tab 2 vào Thẻ nhớ với tên tùy chọn (Hỗ trợ cả LAN & Khác Wi-Fi / 4G)
         const btnUploadCroppedGif = document.getElementById('btnUploadCroppedGif');
         if (btnUploadCroppedGif) {
             btnUploadCroppedGif.addEventListener('click', async () => {
@@ -3746,34 +3878,165 @@
                     return;
                 }
 
+                const rawName = document.getElementById('tab2GifSaveName')?.value || 'anh_dong.gif';
+                const saveName = sanitizeClientMediaName(rawName, '.gif');
+
                 btnUploadCroppedGif.disabled = true;
-                log(`💾 Đang nạp hoạt ảnh GIF đã cắt (${gifFrames.length} frames) vào Flash Cube...`);
-                sendCommand({ cmd: "clear", c: 0 });
+                const pBar = document.getElementById('progressBarContainer');
+                const pFill = document.getElementById('progressBarFill');
+                const pTitle = document.getElementById('tab2LoadingTitle');
+                const pPct = document.getElementById('tab2LoadingPct');
+                const pStat = document.getElementById('tab2LoadingStatus');
+                if (pBar) pBar.style.display = 'block';
+                if (pTitle) pTitle.textContent = `💾 Đang lưu ${saveName} vào Thẻ nhớ...`;
 
                 try {
-                    const optimizedBlob = await encodeCanvasesTo240Gif(gifFrames, cropState, 60, cropSourceCanvas);
-                    log(`⚡ Đã tạo file GIF chuẩn 240x240 (${Math.round(optimizedBlob.size / 1024)} KB). Đang truyền lên Flash...`);
+                    const optimizedBlob = await encodeCanvasesTo240Gif(gifFrames, cropState, 120, cropSourceCanvas);
+                    log(`⚡ Đã cắt GIF 240×240 (${Math.round(optimizedBlob.size / 1024)} KB) chuẩn nhịp 1:1 -> Đang lưu tên "${saveName}"...`);
 
-                    const canUseHttp = (currentConnType === 'lan' || isLocalNetworkIp());
-                    if (canUseHttp) {
-                        await uploadGifViaHttp(optimizedBlob);
-                    } else {
-                        await uploadGifViaMqttChunks(optimizedBlob);
-                    }
+                    await uploadMediaSmart(optimizedBlob, saveName, (pct, loaded, total, modeStr) => {
+                        if (pFill) pFill.style.width = pct + '%';
+                        if (pPct) pPct.textContent = pct + '%';
+                        if (pStat) pStat.textContent = `Đang truyền (${modeStr}): ${Math.round(loaded / 1024)}/${Math.round(total / 1024)} KB`;
+                    });
 
-                    log(`🎉 Đã nạp thành công GIF vào Flash Cube! Cube đang chiếu ở tốc độ 60 FPS.`);
-                    if (btnPlayCustom) btnPlayCustom.style.display = 'block';
+                    log(`🎉 Đã lưu "${saveName}" vào Thẻ nhớ Cube và bắt đầu chiếu đúng tốc độ gốc!`);
+                    sendCommand({ cmd: 'list_media' });
                 } catch (err) {
-                    log(`❌ Lỗi nạp GIF: ${err.message}`);
-                    alert(`Lỗi nạp GIF: ${err.message}`);
+                    log(`❌ Lỗi lưu GIF: ${err.message}`);
+                    alert(`Lỗi lưu GIF: ${err.message}`);
                 } finally {
                     btnUploadCroppedGif.disabled = false;
+                    setTimeout(() => { if (pBar) pBar.style.display = 'none'; }, 1000);
                 }
             });
         }
 
         // ====================================================================
-        // TAB 3: HOLOGRAM GIF CONTROLS, CROPPER & CUSTOM GIF UPLOAD
+        // QUẢN LÝ THƯ VIỆN THẺ NHỚ MICROSD (CHỌN PHÁT & XÓA BẤT KỲ GIF / VIDEO)
+        // ====================================================================
+        function formatBytesHuman(bytes) {
+            const b = Number(bytes) || 0;
+            if (b >= 1024 * 1024) return (b / (1024 * 1024)).toFixed(2) + ' MB';
+            return Math.max(1, Math.round(b / 1024)) + ' KB';
+        }
+
+        function renderSdMediaListUI(data) {
+            if (!data) return;
+            const listEl = document.getElementById('sdMediaListContainer');
+            const summaryEl = document.getElementById('sdStorageSummaryBadge');
+            const filterVal = document.getElementById('sdMediaFilterSelect')?.value || 'all';
+            const hwTemp = document.getElementById('hwTempBadge');
+
+            if (hwTemp && data.tempC !== undefined) {
+                const sdLabel = data.sdMounted ? `• SD ${data.totalMB || ''}MB` : `• ${data.storage || 'Flash'}`;
+                hwTemp.textContent = `• 🌡️ ${data.tempC}°C ${sdLabel}`;
+                hwTemp.style.color = data.tempC >= 65 ? '#ff6b6b' : 'var(--neon-green)';
+            }
+
+            if (summaryEl) {
+                const freeStr = formatBytesHuman(data.freeBytes || 0);
+                const filesCount = Array.isArray(data.files) ? data.files.length : 0;
+                summaryEl.textContent = `${data.sdMounted ? '🟢 Thẻ MicroSD' : '🟡 Bộ nhớ Flash'} • Đang lưu ${filesCount} file • Trống ${freeStr}`;
+            }
+
+            if (!listEl) return;
+            const allFiles = Array.isArray(data.files) ? data.files : [];
+            const filtered = allFiles.filter(f => filterVal === 'all' || f.kind === filterVal);
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = `<div style="text-align: center; padding: 16px; color: var(--text-dim); font-size: 0.82rem; background: rgba(255,255,255,0.02); border-radius: 8px; border: 1px dashed var(--border);">Chưa có file ${filterVal === 'video' ? 'Video (.mjpg)' : (filterVal === 'gif' ? 'GIF (.gif)' : 'GIF hoặc Video')} nào trong Thẻ nhớ. Hãy tải lên ở khung bên dưới!</div>`;
+                return;
+            }
+
+            const activeFile = data.activeFile || '';
+            listEl.innerHTML = '';
+
+            filtered.forEach(f => {
+                const isPlaying = (activeFile && activeFile.toLowerCase() === String(f.name).toLowerCase() && (data.mode === 'custom_gif' || data.mode === 'video'));
+                const isVid = (f.kind === 'video');
+                const row = document.createElement('div');
+                row.style.cssText = `display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 12px; border-radius:8px; background:${isPlaying ? 'rgba(0, 255, 136, 0.12)' : 'rgba(255,255,255,0.03)'}; border:1px solid ${isPlaying ? 'var(--neon-green)' : 'var(--border)'}; flex-wrap:wrap;`;
+
+                const left = document.createElement('div');
+                left.style.cssText = 'display:flex; align-items:center; gap:10px; min-width:160px; flex:1;';
+                const cleanDispName = String(f.name).replace(/^\//, '');
+                left.innerHTML = `
+                    <span style="font-size:1.3rem;">${isVid ? '🎥' : '👾'}</span>
+                    <div style="min-width:0; flex:1;">
+                        <div style="font-weight:700; font-size:0.85rem; color:#fff; word-break:break-all;">
+                            ${cleanDispName}
+                            ${isPlaying ? '<span style="margin-left:6px; font-size:0.68rem; background:var(--neon-green); color:#000; padding:1px 6px; border-radius:4px; font-weight:800;">ĐANG PHÁT</span>' : ''}
+                        </div>
+                        <div style="font-size:0.73rem; color:var(--text-dim);">
+                            ${isVid ? 'Video MJPEG (30+ FPS)' : 'Ảnh động GIF (Chuẩn 1:1)'} • ${formatBytesHuman(f.size)}
+                        </div>
+                    </div>
+                `;
+
+                const actions = document.createElement('div');
+                actions.style.cssText = 'display:flex; gap:6px; align-items:center;';
+
+                const btnPlay = document.createElement('button');
+                btnPlay.type = 'button';
+                btnPlay.className = 'btn';
+                btnPlay.style.cssText = `padding:6px 12px; font-size:0.78rem; font-weight:700; min-height:34px; background:${isVid ? '#10b981' : 'var(--accent)'}; color:#000;`;
+                btnPlay.textContent = isPlaying ? '🔁 Phát lại' : '▶️ Phát';
+                btnPlay.addEventListener('click', () => {
+                    sendCommand({ cmd: 'play_file', file: f.name });
+                    log(`▶️ Đang phát từ Thẻ nhớ: ${cleanDispName}`);
+                });
+
+                const btnDel = document.createElement('button');
+                btnDel.type = 'button';
+                btnDel.className = 'btn btn-danger';
+                btnDel.style.cssText = 'padding:6px 10px; font-size:0.78rem; min-height:34px;';
+                btnDel.textContent = '🗑️ Xóa';
+                btnDel.addEventListener('click', () => {
+                    if (!confirm(`Xóa vĩnh viễn file "${cleanDispName}" khỏi Thẻ nhớ Cube?`)) return;
+                    sendCommand({ cmd: 'del_file', file: f.name });
+                    log(`🗑️ Đã xóa "${cleanDispName}" khỏi Thẻ nhớ!`);
+                });
+
+                actions.appendChild(btnPlay);
+                actions.appendChild(btnDel);
+                row.appendChild(left);
+                row.appendChild(actions);
+                listEl.appendChild(row);
+            });
+        }
+
+        async function refreshSdMediaLibrary() {
+            const origin = getCubeHttpOrigin();
+            if (origin && currentConnType === 'lan') {
+                try {
+                    const r = await fetch(`${origin}/media_list`, { cache: 'no-store' });
+                    if (r.ok) {
+                        const data = await r.json();
+                        latestMediaListData = data;
+                        renderSdMediaListUI(data);
+                        return;
+                    }
+                } catch (e) { }
+            }
+            if (isConnected()) {
+                sendCommand({ cmd: 'list_media' });
+            }
+        }
+
+        const btnRefreshMediaList = document.getElementById('btnRefreshMediaList');
+        if (btnRefreshMediaList) {
+            btnRefreshMediaList.addEventListener('click', refreshSdMediaLibrary);
+        }
+        const sdMediaFilterSelect = document.getElementById('sdMediaFilterSelect');
+        if (sdMediaFilterSelect) {
+            sdMediaFilterSelect.addEventListener('change', () => {
+                if (latestMediaListData) renderSdMediaListUI(latestMediaListData);
+            });
+        }
+
+        // ====================================================================
+        // TAB 3: CẮT KHUNG 1:1 CHO MỌI GIF & ĐẶT TÊN LƯU VÀO THẺ NHỚ
         // ====================================================================
         const gifDropzone = document.getElementById('gifDropzone');
         const gifFileInput = document.getElementById('gifFileInput');
@@ -3783,13 +4046,9 @@
         const customGifSize = document.getElementById('customGifSize');
         const customGifDims = document.getElementById('customGifDims');
         const customGifAdvice = document.getElementById('customGifAdvice');
-        const chkAutoOptimizeGif = document.getElementById('chkAutoOptimizeGif');
         const gifUploadProgress = document.getElementById('gifUploadProgress');
         const gifUploadProgressFill = document.getElementById('gifUploadProgressFill');
         const gifUploadStatusText = document.getElementById('gifUploadStatusText');
-        const btnUploadAndPlayGif = document.getElementById('btnUploadAndPlayGif');
-        const btnDeleteCustomGif = document.getElementById('btnDeleteCustomGif');
-        const btnPlayCustom = document.getElementById('btnPlayCustom');
 
         const btnAlignTop = document.getElementById('btnAlignTop');
         const btnAlignCenter = document.getElementById('btnAlignCenter');
@@ -3801,9 +4060,7 @@
         const btnPlayPikachu = document.getElementById('btnPlayPikachu');
         const btnSwitchPaint = document.getElementById('btnSwitchPaint');
 
-        // Các thành phần cắt ảnh tương tác Tab 3
         const gifCropWorkspace = document.getElementById('gifCropWorkspace');
-        const gifCropStage = document.getElementById('gifCropStage');
         const gifCropSourceCanvas = document.getElementById('gifCropSourceCanvas');
         const gifCropSourceCtx = gifCropSourceCanvas ? gifCropSourceCanvas.getContext('2d') : null;
         const gifCropBox = document.getElementById('gifCropBox');
@@ -3812,7 +4069,7 @@
         const gifCropPreviewCtx = gifCropPreviewCanvas ? gifCropPreviewCanvas.getContext('2d') : null;
         const gifCropPreviewInfo = document.getElementById('gifCropPreviewInfo');
         const btnCropAndPlayCustomGif = document.getElementById('btnCropAndPlayCustomGif');
-        const gifCropDimsBadge = document.getElementById('gifCropDimsBadge');
+        const btnSnapFullTab3Gif = document.getElementById('btnSnapFullTab3Gif');
 
         let selectedCustomGifFile = null;
         let tab3ParsedFrames = [];
@@ -3830,17 +4087,22 @@
             tab3OrigH = origH;
             const maxW = 460;
             const maxH = 460;
-            const scale = Math.min(maxW / origW, maxH / origH, 1.0);
-            const drawW = Math.round(origW * scale);
-            const drawH = Math.round(origH * scale);
+            // Nếu ảnh nhỏ hơn 220px thì phóng đại vừa phải trên bàn cắt để kéo khung dễ dàng
+            const scale = (origW < 220 && origH < 220)
+                ? Math.min(280 / origW, 280 / origH)
+                : Math.min(maxW / origW, maxH / origH, 1.0);
+            const drawW = Math.max(80, Math.round(origW * scale));
+            const drawH = Math.max(80, Math.round(origH * scale));
 
             gifCropSourceCanvas.width = drawW;
             gifCropSourceCanvas.height = drawH;
             if (tab3ParsedFrames.length > 0) {
+                gifCropSourceCtx.fillStyle = '#000000';
+                gifCropSourceCtx.fillRect(0, 0, drawW, drawH);
                 gifCropSourceCtx.drawImage(tab3ParsedFrames[0].canvas, 0, 0, drawW, drawH);
             }
 
-            const side = Math.round(Math.min(drawW, drawH) * 0.85);
+            const side = Math.min(drawW, drawH);
             gifCropState.w = side;
             gifCropState.h = side;
             gifCropState.x = Math.round((drawW - side) / 2);
@@ -3850,12 +4112,24 @@
             startTab3PreviewAnimation();
         }
 
+        if (btnSnapFullTab3Gif) {
+            btnSnapFullTab3Gif.addEventListener('click', () => {
+                if (!gifCropSourceCanvas || !gifCropSourceCanvas.width) return;
+                const side = Math.min(gifCropSourceCanvas.width, gifCropSourceCanvas.height);
+                gifCropState.w = side;
+                gifCropState.h = side;
+                gifCropState.x = Math.round((gifCropSourceCanvas.width - side) / 2);
+                gifCropState.y = Math.round((gifCropSourceCanvas.height - side) / 2);
+                updateGifCropBoxView();
+            });
+        }
+
         function updateGifCropBoxView() {
             if (!gifCropBox) return;
             gifCropBox.style.left = gifCropState.x + 'px';
             gifCropBox.style.top = gifCropState.y + 'px';
             gifCropBox.style.width = gifCropState.w + 'px';
-            gifCropBox.style.height = gifCropState.w + 'px'; // Khoa vuong 1:1
+            gifCropBox.style.height = gifCropState.w + 'px';
         }
 
         function startTab3PreviewAnimation() {
@@ -3882,15 +4156,14 @@
             gifCropPreviewCtx.drawImage(f.canvas, srcX, srcY, srcW, srcH, 0, 0, 240, 240);
 
             if (gifCropPreviewInfo) {
-                gifCropPreviewInfo.textContent = `Khung ${tab3PreviewFrameIdx + 1}/${tab3ParsedFrames.length} (${Math.round(srcW)}x${Math.round(srcH)}px ➔ 240x240)`;
+                gifCropPreviewInfo.textContent = `Khung ${tab3PreviewFrameIdx + 1}/${tab3ParsedFrames.length} • Nhịp ${f.delay}ms (${Math.round(srcW)}×${Math.round(srcH)} ➔ 240×240)`;
             }
 
             tab3PreviewFrameIdx = (tab3PreviewFrameIdx + 1) % tab3ParsedFrames.length;
-            const delay = Math.max(f.delay || 50, 20);
+            const delay = Math.max(f.delay || 80, 20);
             tab3GifAnimTimer = setTimeout(renderTab3PreviewLoop, delay);
         }
 
-        // Tương tác chuột và cảm ứng trên điện thoại cho khung cắt Tab 3
         if (gifCropBox && gifCropHandle) {
             gifCropBox.addEventListener('mousedown', (e) => {
                 if (e.target === gifCropHandle) return;
@@ -3918,13 +4191,9 @@
                     updateGifCropBoxView();
                 } else if (isResizingGifBox) {
                     const delta = e.clientX - gifDragStartX;
-                    let nw = Math.max(48, gifDragStartY + delta);
-                    if (gifCropState.x + nw > gifCropSourceCanvas.width) {
-                        nw = gifCropSourceCanvas.width - gifCropState.x;
-                    }
-                    if (gifCropState.y + nw > gifCropSourceCanvas.height) {
-                        nw = gifCropSourceCanvas.height - gifCropState.y;
-                    }
+                    let nw = Math.max(40, gifDragStartY + delta);
+                    if (gifCropState.x + nw > gifCropSourceCanvas.width) nw = gifCropSourceCanvas.width - gifCropState.x;
+                    if (gifCropState.y + nw > gifCropSourceCanvas.height) nw = gifCropSourceCanvas.height - gifCropState.y;
                     gifCropState.w = Math.round(nw);
                     gifCropState.h = Math.round(nw);
                     updateGifCropBoxView();
@@ -3962,13 +4231,9 @@
                     updateGifCropBoxView();
                 } else if (isResizingGifBox) {
                     const delta = e.touches[0].clientX - gifDragStartX;
-                    let nw = Math.max(48, gifDragStartY + delta);
-                    if (gifCropState.x + nw > gifCropSourceCanvas.width) {
-                        nw = gifCropSourceCanvas.width - gifCropState.x;
-                    }
-                    if (gifCropState.y + nw > gifCropSourceCanvas.height) {
-                        nw = gifCropSourceCanvas.height - gifCropState.y;
-                    }
+                    let nw = Math.max(40, gifDragStartY + delta);
+                    if (gifCropState.x + nw > gifCropSourceCanvas.width) nw = gifCropSourceCanvas.width - gifCropState.x;
+                    if (gifCropState.y + nw > gifCropSourceCanvas.height) nw = gifCropSourceCanvas.height - gifCropState.y;
                     gifCropState.w = Math.round(nw);
                     gifCropState.h = Math.round(nw);
                     updateGifCropBoxView();
@@ -3981,7 +4246,7 @@
             });
         }
 
-        // Nút Cắt & Chiếu Lên Cube trong Tab 3
+        // Nút Cắt, Lưu vào Thẻ nhớ với Tên tùy chọn & Chiếu ngay
         if (btnCropAndPlayCustomGif) {
             btnCropAndPlayCustomGif.addEventListener('click', async () => {
                 if (!tab3ParsedFrames || tab3ParsedFrames.length === 0) {
@@ -3993,40 +4258,38 @@
                     return;
                 }
 
-                btnCropAndPlayCustomGif.disabled = true;
-                gifUploadProgress.style.display = 'block';
-                gifUploadStatusText.style.display = 'block';
-                gifUploadProgressFill.style.width = '20%';
-                gifUploadStatusText.textContent = "✂️ Đang cắt hoạt ảnh và tối ưu bảng màu...";
-                log(`✂️ Đang cắt hoạt ảnh (${tab3ParsedFrames.length} frames) theo khung chọn...`);
+                const rawName = document.getElementById('customGifSaveName')?.value || (selectedCustomGifFile ? selectedCustomGifFile.name : 'gif_holo.gif');
+                const saveName = sanitizeClientMediaName(rawName, '.gif');
 
-                // 1. Luôn gửi lệnh xóa sạch màn hình đen trước
-                // Luon xoa file cu khoi Flash de tranh tran bo nho
-                sendCommand({ cmd: "del_custom_gif" });
-                await new Promise(r => setTimeout(r, 60));
+                btnCropAndPlayCustomGif.disabled = true;
+                if (gifUploadProgress) gifUploadProgress.style.display = 'block';
+                if (gifUploadStatusText) gifUploadStatusText.style.display = 'block';
+                if (gifUploadProgressFill) gifUploadProgressFill.style.width = '15%';
+                const t3Pct = document.getElementById('tab3LoadingPct');
+                if (t3Pct) t3Pct.textContent = '15%';
+                if (gifUploadStatusText) gifUploadStatusText.textContent = `✂️ Đang cắt 240×240 & giữ nguyên tốc độ gốc cho "${saveName}"...`;
 
                 try {
-                    const optimizedBlob = await encodeCanvasesTo240Gif(tab3ParsedFrames, gifCropState, 60, gifCropSourceCanvas, tab3OrigGct);
-                    gifUploadProgressFill.style.width = '60%';
-                    log(`⚡ Đã tạo file GIF 240x240 (${Math.round(optimizedBlob.size / 1024)} KB) màu sắc trung thực! Đang nạp lên Cube...`);
+                    const optimizedBlob = await encodeCanvasesTo240Gif(tab3ParsedFrames, gifCropState, 120, gifCropSourceCanvas, tab3OrigGct);
+                    log(`⚡ Đã đóng gói "${saveName}" (${Math.round(optimizedBlob.size / 1024)} KB, giữ nguyên nhịp gốc 1:1). Đang tải vào Thẻ nhớ...`);
 
-                    const canUseHttp = (currentConnType === 'lan' || isLocalNetworkIp());
-                    if (canUseHttp) {
-                        gifUploadStatusText.textContent = `Đang nạp file (${Math.round(optimizedBlob.size / 1024)} KB) qua LAN tốc độ cao...`;
-                        await uploadGifViaHttp(optimizedBlob);
-                    } else {
-                        gifUploadStatusText.textContent = `Đang truyền file (${Math.round(optimizedBlob.size / 1024)} KB) qua Cloud 4G...`;
-                        await uploadGifViaMqttChunks(optimizedBlob);
-                    }
+                    await uploadMediaSmart(optimizedBlob, saveName, (pct, loaded, total, modeStr) => {
+                        if (gifUploadProgressFill) gifUploadProgressFill.style.width = pct + '%';
+                        if (t3Pct) t3Pct.textContent = pct + '%';
+                        if (gifUploadStatusText) {
+                            gifUploadStatusText.textContent = `Đang truyền (${modeStr}): ${pct}% (${Math.round(loaded / 1024)}/${Math.round(total / 1024)} KB)`;
+                        }
+                    });
 
-                    gifUploadProgressFill.style.width = '100%';
-                    gifUploadStatusText.textContent = "✅ Nạp thành công! Cube đang chiếu hoạt ảnh GIF.";
-                    log(`🎉 Đã chiếu thành công GIF đã cắt trên Cube!`);
-                    if (btnPlayCustom) btnPlayCustom.style.display = 'block';
+                    if (gifUploadProgressFill) gifUploadProgressFill.style.width = '100%';
+                    if (t3Pct) t3Pct.textContent = '100%';
+                    if (gifUploadStatusText) gifUploadStatusText.textContent = `✅ Đã lưu "${saveName}" vào Thẻ nhớ & đang chiếu!`;
+                    log(`🎉 Đã lưu thành công "${saveName}" vào Thẻ nhớ MicroSD và chiếu trên Cube!`);
+                    setTimeout(refreshSdMediaLibrary, 400);
                 } catch (err) {
-                    log(`❌ Lỗi nạp GIF: ${err.message}`);
-                    gifUploadStatusText.textContent = `❌ Lỗi: ${err.message}`;
-                    alert(`Lỗi nạp GIF: ${err.message}`);
+                    log(`❌ Lỗi tải GIF: ${err.message}`);
+                    if (gifUploadStatusText) gifUploadStatusText.textContent = `❌ Lỗi: ${err.message}`;
+                    alert(`Lỗi tải GIF: ${err.message}`);
                 } finally {
                     btnCropAndPlayCustomGif.disabled = false;
                 }
@@ -4051,19 +4314,22 @@
             });
         }
 
+        // MỌI FILE GIF TẢI LÊN (BẤT KỂ KÍCH THƯỚC) ĐỀU MỞ KHUNG CẮT 1:1 & CHO ĐẶT TÊN RIÊNG
         async function handleCustomGifSelected(file) {
             if (!file.name.toLowerCase().endsWith('.gif') && file.type !== 'image/gif') {
                 alert("Vui lòng chọn file định dạng .gif!");
                 return;
             }
             selectedCustomGifFile = file;
-            customGifName.textContent = file.name;
+            if (customGifName) customGifName.textContent = file.name;
+            const saveInput = document.getElementById('customGifSaveName');
+            if (saveInput) saveInput.value = sanitizeClientMediaName(file.name, '.gif');
+
             const kb = Math.round(file.size / 1024);
-            customGifSize.textContent = `${kb} KB`;
-            customGifImg.src = URL.createObjectURL(file);
-            customGifPreviewCard.style.display = 'flex';
-            gifUploadProgress.style.display = 'none';
-            gifUploadStatusText.style.display = 'none';
+            if (customGifSize) customGifSize.textContent = `${kb} KB`;
+            if (customGifImg) customGifImg.src = URL.createObjectURL(file);
+            if (customGifPreviewCard) customGifPreviewCard.style.display = 'flex';
+            if (gifUploadProgress) gifUploadProgress.style.display = 'none';
 
             try {
                 const arrayBuf = await file.arrayBuffer();
@@ -4075,107 +4341,22 @@
                     const origW = parsed.width;
                     const origH = parsed.height;
 
-                    if (customGifDims) customGifDims.textContent = `${origW}x${origH}px (${tab3ParsedFrames.length} frames)`;
+                    if (customGifDims) customGifDims.textContent = `${origW}×${origH}px (${tab3ParsedFrames.length} frames)`;
 
-                    if (origW > 240 || origH > 240 || origW !== origH) {
-                        setupTab3Cropper(origW, origH);
-                        if (btnUploadAndPlayGif) btnUploadAndPlayGif.style.display = 'none';
-                        if (gifCropWorkspace) gifCropWorkspace.style.display = 'flex';
-                        if (customGifAdvice) {
-                            customGifAdvice.textContent = `✂️ Kích thước gốc (${origW}x${origH}px) lớn hơn 240x240. Vui lòng kéo khung hoặc góc chấm xanh bên dưới để chọn vùng nhân vật cần chiếu!`;
-                            customGifAdvice.style.display = 'block';
-                        }
-                    } else {
-                        if (btnUploadAndPlayGif) btnUploadAndPlayGif.style.display = 'block';
-                        if (gifCropWorkspace) gifCropWorkspace.style.display = 'none';
-                        if (customGifAdvice) {
-                            customGifAdvice.textContent = `✅ File đã đạt chuẩn kích thước Hologram 240x240. Bấm [Chiếu Ngay] để phát hoạt ảnh trên Cube.`;
-                            customGifAdvice.style.display = 'block';
-                        }
+                    // Luôn luôn mở khung cắt tương tác 1:1 cho mọi GIF tải lên!
+                    setupTab3Cropper(origW, origH);
+                    if (gifCropWorkspace) gifCropWorkspace.style.display = 'flex';
+                    if (customGifAdvice) {
+                        customGifAdvice.textContent = `✂️ Hãy đặt tên file cần lưu vào Thẻ nhớ ở trên, kéo chỉnh khung cắt 1:1 bên dưới rồi bấm [🚀 Cắt, Lưu Vào Thẻ Nhớ & Chiếu Ngay]!`;
+                        customGifAdvice.style.display = 'block';
                     }
-                    log(`🎬 Đã nạp GIF: ${file.name} (${origW}x${origH}px, ${tab3ParsedFrames.length} frames).`);
+                    log(`🎬 Đã mở khung cắt cho GIF "${file.name}" (${origW}×${origH}px, ${tab3ParsedFrames.length} frames).`);
                     return;
                 }
             } catch (e) {
                 console.warn("Could not parse gif metadata:", e);
-                log(`🎬 Đã chọn GIF: ${file.name} (${kb} KB). Bấm [Chiếu Ngay] để tải lên.`);
+                alert("Không thể giải mã cấu trúc file GIF này. Vui lòng thử một file .gif khác!");
             }
-        }
-
-        if (btnUploadAndPlayGif) {
-            btnUploadAndPlayGif.addEventListener('click', async () => {
-                if (!selectedCustomGifFile) return;
-                if (!isConnected()) {
-                    alert("Chưa kết nối tới Cube! Vui lòng bấm [Kết nối] trước.");
-                    return;
-                }
-                await uploadAndPlayCustomGif(selectedCustomGifFile);
-            });
-        }
-
-        if (btnDeleteCustomGif) {
-            btnDeleteCustomGif.addEventListener('click', () => {
-                if (!confirm("Xác nhận xóa file GIF tùy chọn khỏi Flash Cube để giải phóng bộ nhớ?")) return;
-                sendCommand({ cmd: "clear", c: 0 });
-                sendCommand({ cmd: "del_custom_gif" });
-                if (customGifPreviewCard) customGifPreviewCard.style.display = 'none';
-                if (gifCropWorkspace) gifCropWorkspace.style.display = 'none';
-                if (btnPlayCustom) btnPlayCustom.style.display = 'none';
-                selectedCustomGifFile = null;
-                tab3ParsedFrames = [];
-                log("🗑️ Đã xóa file GIF tùy chọn khỏi bộ nhớ Flash Cube!");
-            });
-        }
-
-        async function uploadAndPlayCustomGif(file) {
-            btnUploadAndPlayGif.disabled = true;
-            gifUploadProgress.style.display = 'block';
-            gifUploadStatusText.style.display = 'block';
-            gifUploadProgressFill.style.width = '0%';
-            gifUploadStatusText.textContent = "Đang chuẩn bị...";
-
-            // 1. Luôn gửi lệnh xóa sạch màn hình đen trước
-            sendCommand({ cmd: "clear", c: 0 });
-
-            try {
-                let finalBlob = file;
-
-                // Nếu ảnh lớn hơn 240x240 hoặc > 750KB thì nén tối ưu bảng màu
-                const shouldOptimize = (chkAutoOptimizeGif && chkAutoOptimizeGif.checked) || file.size > 750 * 1024;
-                if (tab3ParsedFrames && tab3ParsedFrames.length > 0 && (shouldOptimize || tab3OrigW > 240 || tab3OrigH > 240)) {
-                    gifUploadStatusText.textContent = "⚡ Đang xử lý & co giãn về chuẩn 240x240...";
-                    log(`⚡ Đang tối ưu hóa ${file.name} về kích thước chuẩn Hologram 240x240 (Bảo toàn màu sắc)...`);
-                    finalBlob = await encodeCanvasesTo240Gif(tab3ParsedFrames, null, 60);
-                    log(`✅ Tối ưu thành công! Dung lượng: ${Math.round(finalBlob.size / 1024)} KB.`);
-                }
-
-                // 2. Tiến hành tải lên Cube:
-                const canUseHttp = (currentConnType === 'lan' || isLocalNetworkIp());
-                if (canUseHttp) {
-                    gifUploadStatusText.textContent = `Đang nạp file (${Math.round(finalBlob.size / 1024)} KB) qua LAN tốc độ cao...`;
-                    await uploadGifViaHttp(finalBlob);
-                } else {
-                    gifUploadStatusText.textContent = `Đang truyền file (${Math.round(finalBlob.size / 1024)} KB) qua Cloud 4G...`;
-                    await uploadGifViaMqttChunks(finalBlob);
-                }
-
-                gifUploadStatusText.textContent = "✅ Nạp thành công! Cube đang chiếu hoạt ảnh GIF.";
-                log(`🎉 Đã chiếu GIF "${file.name}" trên Cube!`);
-                if (btnPlayCustom) btnPlayCustom.style.display = 'block';
-            } catch (err) {
-                log(`❌ Lỗi nạp GIF: ${err.message}`);
-                gifUploadStatusText.textContent = `❌ Lỗi: ${err.message}`;
-            } finally {
-                btnUploadAndPlayGif.disabled = false;
-            }
-        }
-
-        if (btnPlayCustom) {
-            btnPlayCustom.addEventListener('click', () => {
-                sendCommand({ cmd: "clear", c: 0 });
-                sendCommand({ cmd: "gif_custom" });
-                log("▶️ Đang chiếu lại GIF tùy chọn đã lưu trên Flash!");
-            });
         }
 
         if (btnAlignTop) {
@@ -4192,7 +4373,7 @@
                 sendCommand({ cmd: "align", val: 1 });
                 btnAlignCenter.className = 'btn active';
                 if (btnAlignTop) btnAlignTop.className = 'btn btn-secondary';
-                log("⚖️ Đã chỉnh vị trí hiển thị: Căn giữa màn hình (y=40)");
+                log("⚖️ Đã chỉnh vị trí hiển thị: Căn giữa màn hình");
             });
         }
 
@@ -4200,35 +4381,35 @@
             btnPlayEgo.addEventListener('click', () => {
                 sendCommand({ cmd: "clear", c: 0 });
                 sendCommand({ cmd: "gif", name: "ego" });
-                log("🟣 Đang chiếu GIF Vegeta Ultra Ego (Aura tím 240x240)!");
+                log("🟣 Đang chiếu GIF Vegeta Ultra Ego (Chuẩn nhịp gốc)!");
             });
         }
         if (btnPlayGoku) {
             btnPlayGoku.addEventListener('click', () => {
                 sendCommand({ cmd: "clear", c: 0 });
                 sendCommand({ cmd: "gif", name: "goku" });
-                log("⚪ Đang chiếu GIF Goku Ultra Instinct (Bản năng vô cực 240x240)!");
+                log("⚪ Đang chiếu GIF Goku Ultra Instinct (Chuẩn nhịp gốc)!");
             });
         }
         if (btnPlayKitty) {
             btnPlayKitty.addEventListener('click', () => {
                 sendCommand({ cmd: "clear", c: 0 });
                 sendCommand({ cmd: "gif", name: "kitty" });
-                log("🐱 Đang chiếu GIF Mèo Curious Kitty (240x240)!");
+                log("🐱 Đang chiếu GIF Mèo Curious Kitty (Chuẩn nhịp gốc)!");
             });
         }
         if (btnPlayW78) {
             btnPlayW78.addEventListener('click', () => {
                 sendCommand({ cmd: "clear", c: 0 });
                 sendCommand({ cmd: "gif", name: "w78" });
-                log("✨ Đang chiếu GIF Hiệu ứng w78 (240x240)!");
+                log("✨ Đang chiếu GIF Hiệu ứng w78 (Chuẩn nhịp gốc)!");
             });
         }
         if (btnPlayPikachu) {
             btnPlayPikachu.addEventListener('click', () => {
                 sendCommand({ cmd: "clear", c: 0 });
                 sendCommand({ cmd: "gif", name: "pikachu" });
-                log("⚡ Đang chiếu GIF Pikachu (240x240)!");
+                log("⚡ Đang chiếu GIF Pikachu (Chuẩn nhịp gốc)!");
             });
         }
 
@@ -4248,11 +4429,12 @@
                 const targetId = btn.getAttribute('data-tab');
                 document.querySelectorAll('.main-container').forEach(c => c.style.display = 'none');
                 document.getElementById(targetId).style.display = 'flex';
+                if (targetId === 'gifTab') {
+                    refreshSdMediaLibrary();
+                }
             });
         });
 
-        // Tự động thử kết nối khi mở trang
-        // Khởi tạo hướng xoay màn hình đã lưu
         setRotation(currentRotation, false);
 
         setTimeout(() => {
@@ -4267,12 +4449,14 @@
             if (connTypeSelect) connTypeSelect.value = currentConnType;
             updateInputPlaceholder();
 
-            if (currentConnType === 'lan') {
-                const hostIp = (window.location.hostname && /^(\d{1,3}\.){3}\d{1,3}$/.test(window.location.hostname)) ? window.location.hostname : '192.168.1.59';
-                connInput.value = localStorage.getItem('hologram_last_ip') || hostIp;
+            if (currentConnType === 'lan' && !isHosted) {
+                const hostIp = (window.location.hostname && /^(\d{1,3}\.){3}\d{1,3}$/.test(window.location.hostname)) ? window.location.hostname : '192.168.1.233';
+                const savedIp = localStorage.getItem('hologram_last_ip');
+                connInput.value = (savedIp && savedIp !== '192.168.1.59') ? savedIp : hostIp;
                 connectLocalWs();
             } else {
-                connInput.value = localStorage.getItem('hologram_device_id') || 'HOLO-FD9C';
+                const savedDev = localStorage.getItem('hologram_device_id');
+                connInput.value = (savedDev && savedDev !== 'HOLO-FD9C') ? savedDev : 'HOLO-B1D8';
                 connect();
             }
         }, 200);
@@ -4323,301 +4507,373 @@
 
 
         // ====================================================================
-        // TAB 4: REAL-TIME DIGITAL CLOCK & SPACE WEATHER STATION
+        // TAB 4: ĐỒNG HỒ KAWAII SPACE CAT 240×240 (0% CHỚP GIẬT + ĐỊNH VỊ WI-FI)
         // ====================================================================
         const clockCanvas = document.getElementById('clockCanvas');
         const clockCtx = clockCanvas ? clockCanvas.getContext('2d') : null;
         let clockInterval = null;
         let lastWeatherFetchTime = 0;
 
-        // Bitmap phi hành gia 64x64 cho Canvas
-        const astroSpriteImg = document.createElement('canvas');
-        astroSpriteImg.width = 64;
-        astroSpriteImg.height = 64;
-        const astroCtx = astroSpriteImg.getContext('2d');
-
-        // Khởi tạo sprite phi hành gia
-        (function initAstroSprite() {
-            astroCtx.fillStyle = '#ffffff';
-            // Vẽ đầu, mũ bảo hộ, cơ thể, ba lô
-            astroCtx.beginPath();
-            astroCtx.ellipse(32, 28, 16, 16, 0, 0, Math.PI * 2);
-            astroCtx.lineWidth = 3;
-            astroCtx.strokeStyle = '#ffffff';
-            astroCtx.stroke();
-
-            // Kính chắn gió mũ bảo hộ
-            astroCtx.fillStyle = '#0f172a';
-            astroCtx.beginPath();
-            astroCtx.ellipse(32, 28, 11, 9, 0, 0, Math.PI * 2);
-            astroCtx.fill();
-            astroCtx.strokeStyle = '#38bdf8';
-            astroCtx.lineWidth = 1.5;
-            astroCtx.stroke();
-            // Điểm sáng kính
-            astroCtx.fillStyle = '#ffffff';
-            astroCtx.beginPath();
-            astroCtx.ellipse(36, 25, 3, 2, 0, 0, Math.PI * 2);
-            astroCtx.fill();
-
-            // Thân và balo
-            astroCtx.strokeStyle = '#ffffff';
-            astroCtx.lineWidth = 3;
-            astroCtx.beginPath();
-            astroCtx.roundRect(24, 42, 16, 16, 4);
-            astroCtx.stroke();
-            // Balo phản lực
-            astroCtx.beginPath();
-            astroCtx.roundRect(16, 40, 7, 18, 3);
-            astroCtx.stroke();
-            // Tay và chân
-            astroCtx.beginPath();
-            astroCtx.moveTo(24, 46);
-            astroCtx.lineTo(16, 52);
-            astroCtx.moveTo(40, 46);
-            astroCtx.lineTo(46, 54);
-            astroCtx.moveTo(28, 58);
-            astroCtx.lineTo(26, 62);
-            astroCtx.moveTo(36, 58);
-            astroCtx.lineTo(38, 62);
-            astroCtx.stroke();
-        })();
-
-        // Hàm vẽ số điện tử bo góc (Hours / Minutes)
-        function drawCanvasClockDigit(ctx, x, y, digit, w, h, th, color, isHollow) {
+        function drawCuteClockDigit2D(ctx, x, y, digit, w, h, th, color, shadowColor, isHollow) {
             const segs = [0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F];
             const m = segs[digit] || 0;
             const halfH = Math.floor(h / 2);
-            const r = 3;
 
-            if (digit === 0 && isHollow) {
-                ctx.fillStyle = color;
-                ctx.beginPath();
-                ctx.roundRect(x, y, w, h, 6);
-                ctx.fill();
-                ctx.fillStyle = '#000000';
-                ctx.beginPath();
-                ctx.roundRect(x + th, y + th, w - 2 * th, h - 2 * th, 4);
-                ctx.fill();
-                return;
+            function drawOne(gx, gy, col, isShadow) {
+                ctx.fillStyle = col;
+                if (digit === 0 && isHollow) {
+                    ctx.beginPath(); ctx.roundRect(gx, gy, w, h, 7); ctx.fill();
+                    if (!isShadow) {
+                        ctx.fillStyle = '#000000';
+                        ctx.beginPath(); ctx.roundRect(gx + th, gy + th, w - 2 * th, h - 2 * th, 4); ctx.fill();
+                    }
+                    return;
+                }
+                if (digit === 1) {
+                    const cx = gx + Math.floor(w / 2 - th / 2) + 2;
+                    ctx.beginPath(); ctx.roundRect(cx, gy, th, h, 3); ctx.fill();
+                    ctx.beginPath(); ctx.moveTo(cx, gy + 2); ctx.lineTo(cx, gy + 13); ctx.lineTo(cx - 7, gy + 13); ctx.fill();
+                    ctx.beginPath(); ctx.roundRect(gx + 3, gy + h - th, w - 6, th, 3); ctx.fill();
+                    return;
+                }
+                function rrect(rx, ry, rw, rh) {
+                    ctx.beginPath(); ctx.roundRect(rx, ry, rw, rh, 3); ctx.fill();
+                }
+                if (m & 0x01) rrect(gx, gy, w, th);
+                if (m & 0x02) rrect(gx + w - th, gy, th, halfH + 2);
+                if (m & 0x04) rrect(gx + w - th, gy + halfH - 1, th, halfH + 2);
+                if (m & 0x08) rrect(gx, gy + h - th, w, th);
+                if (m & 0x10) rrect(gx, gy + halfH - 1, th, halfH + 2);
+                if (m & 0x20) rrect(gx, gy, th, halfH + 2);
+                if (m & 0x40) rrect(gx + 1, gy + halfH - Math.floor(th / 2), w - 2, th);
             }
 
-            if (digit === 1) {
-                ctx.fillStyle = color;
-                ctx.beginPath();
-                ctx.roundRect(x + Math.floor(w / 2 - th / 2), y, th, h, 2);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.moveTo(x + Math.floor(w / 2 - th / 2), y);
-                ctx.lineTo(x + Math.floor(w / 2 - th / 2), y + 12);
-                ctx.lineTo(x + Math.floor(w / 2 - th / 2) - 8, y + 12);
-                ctx.fill();
-                return;
-            }
-
-            ctx.fillStyle = color;
-            function rect(rx, ry, rw, rh) {
-                ctx.beginPath();
-                ctx.roundRect(rx, ry, rw, rh, r);
-                ctx.fill();
-            }
-
-            if (m & 0x01) rect(x, y, w, th);                           // top
-            if (m & 0x02) rect(x + w - th, y, th, halfH + 1);          // top-right
-            if (m & 0x04) rect(x + w - th, y + halfH, th, halfH + 1);  // bottom-right
-            if (m & 0x08) rect(x, y + h - th, w, th);                  // bottom
-            if (m & 0x10) rect(x, y + halfH, th, halfH + 1);          // bottom-left
-            if (m & 0x20) rect(x, y, th, halfH + 1);                  // top-left
-            if (m & 0x40) rect(x, y + halfH - Math.floor(th / 2), w, th);// middle
+            drawOne(x + 2, y + 3, shadowColor, true);
+            drawOne(x, y, color, false);
         }
 
-        // Vẽ toàn bộ màn hình đồng hồ Canvas 240x240 theo thời gian thực
+        function drawKawaiiWeather2D(ctx, cx, cy, hour, weather, ms) {
+            const isRain = /Rain|Showers|Thunder/i.test(weather);
+            const isCloud = /Cloud|Fog|Snow/i.test(weather);
+            const blink = (ms % 3600) < 170;
+
+            if (isRain || isCloud) {
+                const bob = Math.sin(ms / 340) * 2;
+                const y = cy + bob;
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(cx - 8, y + 2, 9, 0, Math.PI * 2);
+                ctx.arc(cx + 1, y - 3, 11, 0, Math.PI * 2);
+                ctx.arc(cx + 10, y + 2, 8, 0, Math.PI * 2);
+                ctx.roundRect(cx - 14, y + 2, 30, 10, 4);
+                ctx.fill();
+                // Má hồng & mặt cười mây
+                ctx.fillStyle = '#ff75b5';
+                ctx.beginPath(); ctx.arc(cx - 6, y + 5, 2, 0, Math.PI * 2); ctx.arc(cx + 8, y + 5, 2, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#101420';
+                if (blink) {
+                    ctx.fillRect(cx - 5, y + 2, 3, 1.5);
+                    ctx.fillRect(cx + 3, y + 2, 3, 1.5);
+                } else {
+                    ctx.beginPath(); ctx.arc(cx - 3, y + 2, 1.4, 0, Math.PI * 2); ctx.arc(cx + 4, y + 2, 1.4, 0, Math.PI * 2); ctx.fill();
+                }
+                if (isRain) {
+                    ctx.strokeStyle = '#4cedff';
+                    ctx.lineWidth = 1.5;
+                    for (let i = 0; i < 3; i++) {
+                        const dropY = cy + 13 + ((ms / 70 + i * 5) % 10);
+                        const dropX = cx - 8 + i * 8;
+                        ctx.beginPath(); ctx.moveTo(dropX, dropY); ctx.lineTo(dropX - 1.5, dropY + 3.5); ctx.stroke();
+                    }
+                }
+                return;
+            }
+
+            if (hour >= 6 && hour < 18) {
+                const baseAng = (ms % 8000) * (Math.PI * 2 / 8000);
+                ctx.strokeStyle = '#ffb703';
+                ctx.lineWidth = 2;
+                for (let i = 0; i < 8; i++) {
+                    const a = baseAng + i * (Math.PI / 4);
+                    ctx.beginPath();
+                    ctx.moveTo(cx + Math.cos(a) * 15, cy + Math.sin(a) * 15);
+                    ctx.lineTo(cx + Math.cos(a) * 19, cy + Math.sin(a) * 19);
+                    ctx.stroke();
+                }
+                ctx.fillStyle = '#ffd166';
+                ctx.beginPath(); ctx.arc(cx, cy, 12.5, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#ff5277';
+                ctx.beginPath(); ctx.arc(cx - 6, cy + 3, 2.2, 0, Math.PI * 2); ctx.arc(cx + 6, cy + 3, 2.2, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#000000';
+                if (blink) {
+                    ctx.fillRect(cx - 6, cy - 1, 3, 1.5);
+                    ctx.fillRect(cx + 3, cy - 1, 3, 1.5);
+                } else {
+                    ctx.beginPath(); ctx.arc(cx - 4, cy - 1, 1.4, 0, Math.PI * 2); ctx.arc(cx + 4, cy - 1, 1.4, 0, Math.PI * 2); ctx.fill();
+                }
+                ctx.beginPath(); ctx.arc(cx, cy + 1.5, 2.5, 0, Math.PI); ctx.stroke();
+            } else {
+                ctx.fillStyle = '#ffb703';
+                ctx.beginPath(); ctx.arc(cx, cy + 1, 13, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#000000';
+                ctx.beginPath(); ctx.arc(cx - 5, cy - 3, 11, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#ff75b5';
+                ctx.beginPath(); ctx.arc(cx + 5, cy + 4, 2, 0, Math.PI * 2); ctx.fill();
+                const zFloat = (ms / 350) % 6;
+                ctx.fillStyle = '#4cedff';
+                ctx.font = 'bold 9px sans-serif';
+                ctx.fillText('z', cx - 15, cy - 6 - zFloat * 0.5);
+                ctx.fillStyle = '#b5b7ff';
+                ctx.fillText('Z', cx - 9, cy - 12 - zFloat * 0.4);
+            }
+        }
+
+        function drawKawaiiSpaceCat2D(ctx, baseX, baseY, ms) {
+            const bobY = Math.sin(ms / 360) * 3;
+            const cx = baseX;
+            const cy = baseY + bobY;
+            const blink = (ms % 3200) < 180;
+            const wave = Math.sin(ms / 220) * 3;
+            const tailWag = Math.sin(ms / 260) * 4;
+
+            // Đuôi mèo
+            ctx.strokeStyle = '#ffb3a7';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath(); ctx.moveTo(cx - 10, cy + 22); ctx.lineTo(cx - 20, cy + 18 + tailWag); ctx.stroke();
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath(); ctx.arc(cx - 21, cy + 18 + tailWag, 2.2, 0, Math.PI * 2); ctx.fill();
+
+            // Tia lửa phản lực pastel
+            const puff = (ms / 120) % 6;
+            ctx.fillStyle = '#4cedff';
+            ctx.beginPath(); ctx.arc(cx - 14, cy + 25 + puff, 2.2, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = '#ff75b5';
+            ctx.beginPath(); ctx.arc(cx - 16, cy + 29 + puff * 0.5, 1.5, 0, Math.PI * 2); ctx.fill();
+
+            // Balo & thân áo phi hành gia
+            ctx.fillStyle = '#b5b7ff';
+            ctx.beginPath(); ctx.roundRect(cx - 16, cy + 10, 7, 13, 3); ctx.fill();
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath(); ctx.roundRect(cx - 11, cy + 9, 22, 17, 6); ctx.fill();
+            ctx.strokeStyle = '#6bb3ff'; ctx.lineWidth = 1.2; ctx.stroke();
+
+            // Trái tim hồng trước ngực
+            ctx.fillStyle = '#ff75b5';
+            ctx.beginPath(); ctx.arc(cx - 2, cy + 16, 2, 0, Math.PI * 2); ctx.arc(cx + 2, cy + 16, 2, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(cx - 4, cy + 17); ctx.lineTo(cx + 4, cy + 17); ctx.lineTo(cx, cy + 21); ctx.fill();
+
+            // Chân & Tay vẫy chào
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath(); ctx.roundRect(cx - 8, cy + 24, 6, 5, 2); ctx.roundRect(cx + 2, cy + 24, 6, 5, 2); ctx.roundRect(cx - 15, cy + 12, 5, 8, 2); ctx.fill();
+            ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2.5;
+            ctx.beginPath(); ctx.moveTo(cx + 11, cy + 13); ctx.lineTo(cx + 18, cy + 7 + wave); ctx.stroke();
+            ctx.fillStyle = '#ffb3a7';
+            ctx.beginPath(); ctx.arc(cx + 19, cy + 7 + wave, 3, 0, Math.PI * 2); ctx.fill();
+
+            // Đôi tai mèo trên mũ
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath(); ctx.moveTo(cx - 15, cy - 11); ctx.lineTo(cx - 7, cy - 18); ctx.lineTo(cx - 4, cy - 8); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(cx + 15, cy - 11); ctx.lineTo(cx + 7, cy - 18); ctx.lineTo(cx + 4, cy - 8); ctx.fill();
+            ctx.fillStyle = '#ff75b5';
+            ctx.beginPath(); ctx.moveTo(cx - 13, cy - 11); ctx.lineTo(cx - 8, cy - 15.5); ctx.lineTo(cx - 6, cy - 9); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(cx + 13, cy - 11); ctx.lineTo(cx + 8, cy - 15.5); ctx.lineTo(cx + 6, cy - 9); ctx.fill();
+
+            // Mũ bảo hiểm tròn + Kính Visor
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath(); ctx.arc(cx, cy - 3, 16, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#4cedff'; ctx.lineWidth = 1.2; ctx.stroke();
+
+            ctx.fillStyle = '#10162b';
+            ctx.beginPath(); ctx.roundRect(cx - 13, cy - 12, 26, 18, 8); ctx.fill();
+            ctx.strokeStyle = '#6bb3ff'; ctx.stroke();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath(); ctx.arc(cx - 8, cy - 9, 2, 0, Math.PI * 2); ctx.fill();
+
+            // Khuôn mặt mèo Kawaii
+            ctx.fillStyle = '#ff5277';
+            ctx.beginPath(); ctx.arc(cx - 8, cy - 1, 2.2, 0, Math.PI * 2); ctx.arc(cx + 8, cy - 1, 2.2, 0, Math.PI * 2); ctx.fill();
+
+            if (blink) {
+                ctx.strokeStyle = '#fff9e6'; ctx.lineWidth = 1.5;
+                ctx.beginPath(); ctx.moveTo(cx - 7, cy - 4); ctx.lineTo(cx - 5, cy - 6); ctx.lineTo(cx - 3, cy - 4); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(cx + 3, cy - 4); ctx.lineTo(cx + 5, cy - 6); ctx.lineTo(cx + 7, cy - 4); ctx.stroke();
+            } else {
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath(); ctx.arc(cx - 5, cy - 5, 2.2, 0, Math.PI * 2); ctx.arc(cx + 5, cy - 5, 2.2, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#4cedff';
+                ctx.fillRect(cx - 6, cy - 6, 1.5, 1.5);
+                ctx.fillRect(cx + 4, cy - 6, 1.5, 1.5);
+            }
+            // Mũi hồng & miệng ω
+            ctx.fillStyle = '#ff75b5';
+            ctx.beginPath(); ctx.arc(cx, cy - 2, 1.5, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.2;
+            ctx.beginPath(); ctx.arc(cx - 1.5, cy, 1.5, 0, Math.PI); ctx.arc(cx + 1.5, cy, 1.5, 0, Math.PI); ctx.stroke();
+        }
+
         function renderLiveClockCanvas() {
             if (!clockCtx) return;
-            const now = new Date();
+            const ms = Date.now();
+            const now = new Date(ms);
             let hours = now.getHours();
             const minutes = now.getMinutes();
             const seconds = now.getSeconds();
             const is24H = document.getElementById('chk24HourFormat') ? document.getElementById('chk24HourFormat').checked : true;
-            if (!is24H) {
-                hours = hours % 12 || 12;
-            }
+            if (!is24H) hours = hours % 12 || 12;
 
-            const city = (document.getElementById('clockCityInput') ? document.getElementById('clockCityInput').value : 'Seoul') || 'Seoul';
-            const country = (document.getElementById('clockCountryInput') ? document.getElementById('clockCountryInput').value : 'KR') || 'KR';
-            const temp = parseInt(document.getElementById('clockTempInput')?.value) || 14;
-            const maxTemp = parseInt(document.getElementById('clockMaxTempInput')?.value) || 18;
-            const humidity = parseInt(document.getElementById('clockHumidityInput')?.value) || 32;
+            const city = (document.getElementById('clockCityInput')?.value || 'TP.HCM').trim();
+            const country = (document.getElementById('clockCountryInput')?.value || 'VN').trim();
+            const temp = parseInt(document.getElementById('clockTempInput')?.value) || 30;
+            const maxTemp = parseInt(document.getElementById('clockMaxTempInput')?.value) || 33;
+            const humidity = parseInt(document.getElementById('clockHumidityInput')?.value) || 68;
             const weather = document.getElementById('clockWeatherSelect')?.value || 'Clear';
 
-            // 0. Xóa nền đen tuyệt đối (chuẩn Hologram)
+            // 0. Nền Đen tuyền chuẩn Hologram 3D
             clockCtx.fillStyle = '#000000';
             clockCtx.fillRect(0, 0, 240, 240);
 
-            // 1. Dòng 1: Thành phố (Vàng) & Huy hiệu Quốc gia (Xanh lá)
+            // Bầu trời sao pastel & Sao băng
+            const stars = [[8, 52], [148, 12], [232, 48], [148, 128], [150, 175], [230, 162], [162, 228], [228, 224], [182, 146]];
+            const twIdx = Math.floor(ms / 280) % stars.length;
+            stars.forEach((s, i) => {
+                clockCtx.fillStyle = (i === twIdx) ? '#4cedff' : (i === (twIdx + 4) % stars.length ? '#ff75b5' : 'rgba(255,255,255,0.28)');
+                clockCtx.fillRect(s[0], s[1], 2, 2);
+            });
+            const shootPhase = ms % 5000;
+            if (shootPhase < 550) {
+                const sx = 140 + (shootPhase * 90 / 550);
+                const sy = 142 + (shootPhase * 34 / 550);
+                clockCtx.strokeStyle = '#4cedff'; clockCtx.lineWidth = 1.5;
+                clockCtx.beginPath(); clockCtx.moveTo(sx, sy); clockCtx.lineTo(sx - 10, sy - 4); clockCtx.stroke();
+            }
+
+            // 1. Header Vị trí Wi-Fi + Huy hiệu Quốc gia
+            clockCtx.fillStyle = '#55fd55';
+            clockCtx.beginPath(); clockCtx.arc(14, 19, 2, 0, Math.PI * 2); clockCtx.fill();
+            clockCtx.strokeStyle = '#4cedff'; clockCtx.lineWidth = 1.5;
+            clockCtx.beginPath(); clockCtx.moveTo(11, 15); clockCtx.lineTo(17, 15); clockCtx.moveTo(9, 12); clockCtx.lineTo(19, 12); clockCtx.stroke();
+
             clockCtx.fillStyle = '#ffb703';
-            clockCtx.font = 'bold 18px system-ui, -apple-system, sans-serif';
+            clockCtx.font = 'bold 18px system-ui, sans-serif';
             clockCtx.textAlign = 'left';
             clockCtx.textBaseline = 'top';
-            clockCtx.fillText(city, 12, 8);
+            clockCtx.fillText(city, 24, 6);
 
-            const cityMetrics = clockCtx.measureText(city);
-            let badgeX = 12 + Math.min(cityMetrics.width + 8, 120);
-            clockCtx.fillStyle = '#70e000';
-            clockCtx.beginPath();
-            clockCtx.roundRect(badgeX, 7, 36, 18, 4);
-            clockCtx.fill();
+            const cityW = Math.min(clockCtx.measureText(city).width, 110);
+            const badgeX = 24 + cityW + 6;
+            clockCtx.fillStyle = '#55fd55';
+            clockCtx.beginPath(); clockCtx.roundRect(badgeX, 7, 34, 19, 6); clockCtx.fill();
+            clockCtx.fillStyle = '#000000';
+            clockCtx.font = 'bold 11px system-ui, sans-serif';
+            clockCtx.textAlign = 'center';
+            clockCtx.fillText(country, badgeX + 17, 11);
 
+            clockCtx.fillStyle = '#ff75b5';
+            clockCtx.beginPath(); clockCtx.arc(15, 38, 3, 0, Math.PI * 2); clockCtx.fill();
+            clockCtx.fillStyle = '#ffb3a7';
+            clockCtx.font = '600 12px system-ui, sans-serif';
+            clockCtx.textAlign = 'left';
+            clockCtx.fillText(`Max ${maxTemp}°C  •  Wi-Fi Live`, 23, 32);
+
+            drawKawaiiWeather2D(clockCtx, 208, 24, now.getHours(), weather, ms);
+
+            // 2. Chữ số đồng hồ 3D + Dấu hai chấm nhịp tim Pastel (0% chớp đen!)
+            drawCuteClockDigit2D(clockCtx, 8, 54, Math.floor(hours / 10), 29, 64, 7, '#ffffff', '#18284a', false);
+            drawCuteClockDigit2D(clockCtx, 41, 54, hours % 10, 29, 64, 7, '#ffffff', '#18284a', false);
+
+            const beat = (ms % 1000) < 500;
+            clockCtx.fillStyle = beat ? '#ff75b5' : '#4cedff';
+            clockCtx.beginPath(); clockCtx.arc(78, 75, beat ? 4 : 3, 0, Math.PI * 2); clockCtx.fill();
+            clockCtx.fillStyle = beat ? '#4cedff' : '#ff75b5';
+            clockCtx.beginPath(); clockCtx.arc(78, 98, beat ? 3 : 4, 0, Math.PI * 2); clockCtx.fill();
+
+            drawCuteClockDigit2D(clockCtx, 88, 54, Math.floor(minutes / 10), 29, 64, 7, '#ffb703', '#18284a', true);
+            drawCuteClockDigit2D(clockCtx, 121, 54, minutes % 10, 29, 64, 7, '#ffb703', '#18284a', true);
+
+            // 3. Cột phải: Sticker Thời tiết + Viên thuốc Giây & Thanh trôi mượt
+            clockCtx.fillStyle = '#b5b7ff';
+            clockCtx.beginPath(); clockCtx.roundRect(158, 54, 74, 21, 7); clockCtx.fill();
             clockCtx.fillStyle = '#000000';
             clockCtx.font = 'bold 12px system-ui, sans-serif';
             clockCtx.textAlign = 'center';
-            clockCtx.fillText(country, badgeX + 18, 10);
+            clockCtx.fillText(weather, 195, 59);
 
-            // Biểu tượng Mặt trời / Trăng
-            const realHour = now.getHours();
-            if (realHour >= 6 && realHour < 18) {
-                // Mặt trời cam đất
-                clockCtx.fillStyle = '#e07a5f';
-                clockCtx.beginPath();
-                clockCtx.arc(206, 18, 14, 0, Math.PI * 2);
-                clockCtx.fill();
-            } else {
-                // Mặt trăng khuyết
-                clockCtx.fillStyle = '#ffb703';
-                clockCtx.beginPath();
-                clockCtx.arc(206, 18, 14, 0, Math.PI * 2);
-                clockCtx.fill();
-                clockCtx.fillStyle = '#000000';
-                clockCtx.beginPath();
-                clockCtx.arc(200, 14, 12, 0, Math.PI * 2);
-                clockCtx.fill();
-            }
+            clockCtx.fillStyle = '#101420';
+            clockCtx.beginPath(); clockCtx.roundRect(158, 80, 74, 38, 8); clockCtx.fill();
+            clockCtx.strokeStyle = '#384a94'; clockCtx.lineWidth = 1.2; clockCtx.stroke();
 
-            // 2. Dòng 2: Max temp
-            clockCtx.fillStyle = '#ffffff';
-            clockCtx.font = '13px system-ui, sans-serif';
-            clockCtx.textAlign = 'left';
-            clockCtx.fillText(`Max temp ${maxTemp}°C`, 12, 34);
+            clockCtx.fillStyle = '#4cedff';
+            clockCtx.font = 'bold 22px Consolas, monospace';
+            clockCtx.fillText(String(seconds).padStart(2, '0'), 195, 84);
 
-            // 3. Khối đồng hồ số khổng lồ (Hours: White, Minutes: Gold Outline)
-            const h1 = Math.floor(hours / 10);
-            const h2 = hours % 10;
-            const m1 = Math.floor(minutes / 10);
-            const m2 = minutes % 10;
+            const secBarW = Math.max(4, Math.min(62, Math.round(((seconds * 1000 + (ms % 1000)) / 60000) * 62)));
+            clockCtx.fillStyle = '#212436';
+            clockCtx.beginPath(); clockCtx.roundRect(164, 111, 62, 4, 2); clockCtx.fill();
+            clockCtx.fillStyle = '#ff75b5';
+            clockCtx.beginPath(); clockCtx.roundRect(164, 111, secBarW, 4, 2); clockCtx.fill();
 
-            drawCanvasClockDigit(clockCtx, 12, 58, h1, 26, 64, 7, '#ffffff', false);
-            drawCanvasClockDigit(clockCtx, 42, 58, h2, 26, 64, 7, '#ffffff', false);
-
-            // Dấu hai chấm (:)
-            clockCtx.fillStyle = '#ffffff';
-            clockCtx.fillRect(75, 74, 6, 8);
-            clockCtx.fillRect(75, 100, 6, 8);
-
-            // Minutes (Vàng cam viền rỗng)
-            drawCanvasClockDigit(clockCtx, 88, 58, m1, 26, 64, 7, '#ffb703', true);
-            drawCanvasClockDigit(clockCtx, 118, 58, m2, 26, 64, 7, '#ffb703', true);
-
-            // Huy hiệu thời tiết
-            clockCtx.fillStyle = '#ffffff';
-            clockCtx.beginPath();
-            clockCtx.roundRect(154, 56, 74, 22, 5);
-            clockCtx.fill();
-            clockCtx.fillStyle = '#14234b';
-            clockCtx.font = 'bold 13px system-ui, sans-serif';
-            clockCtx.textAlign = 'center';
-            clockCtx.fillText(weather, 191, 60);
-
-            // Số Giây (Seconds)
-            clockCtx.fillStyle = '#ffffff';
-            clockCtx.font = 'bold 28px Consolas, monospace';
-            clockCtx.textAlign = 'left';
-            const secStr = String(seconds).padStart(2, '0');
-            clockCtx.fillText(secStr, 170, 88);
-
-            // 4. Dòng 4: Ngày tháng & Thứ
-            const daysArr = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-            const dayStr = daysArr[now.getDay()];
+            // 4. Sticker Ngày tháng & Thứ
+            const daysArr = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
             const dateStr = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
 
+            clockCtx.fillStyle = '#101420';
+            clockCtx.beginPath(); clockCtx.roundRect(8, 126, 98, 22, 7); clockCtx.fill();
+            clockCtx.strokeStyle = '#384a94'; clockCtx.stroke();
             clockCtx.fillStyle = '#ffffff';
-            clockCtx.font = '14px system-ui, sans-serif';
-            clockCtx.fillText(dateStr, 12, 134);
-            clockCtx.fillStyle = '#70e000';
-            clockCtx.font = 'bold 14px system-ui, sans-serif';
-            clockCtx.fillText(dayStr, 118, 134);
+            clockCtx.font = 'bold 12px system-ui, sans-serif';
+            clockCtx.fillText(dateStr, 57, 131);
 
-            // 5. Cột trái dưới: Thanh đo Nhiệt độ & Độ ẩm
-            // 5.1 Nhiệt độ
-            clockCtx.fillStyle = '#ef4444';
-            clockCtx.beginPath();
-            clockCtx.arc(17, 172, 5, 0, Math.PI * 2);
-            clockCtx.fill();
+            clockCtx.fillStyle = '#ff75b5';
+            clockCtx.beginPath(); clockCtx.roundRect(112, 126, 42, 22, 7); clockCtx.fill();
+            clockCtx.fillStyle = '#000000';
+            clockCtx.fillText(daysArr[now.getDay()], 133, 131);
+
+            // 5. Hai thẻ kẹo ngọt Nhiệt độ & Độ ẩm
+            clockCtx.fillStyle = '#101420';
+            clockCtx.beginPath(); clockCtx.roundRect(8, 156, 136, 34, 8); clockCtx.fill();
+            clockCtx.strokeStyle = '#2e3856'; clockCtx.stroke();
+            clockCtx.fillStyle = '#ff5277';
+            clockCtx.beginPath(); clockCtx.arc(21, 178, 5, 0, Math.PI * 2); clockCtx.fill();
+            clockCtx.fillStyle = '#ffffff'; clockCtx.fillRect(19, 164, 4, 12);
+
+            clockCtx.fillStyle = '#212436';
+            clockCtx.beginPath(); clockCtx.roundRect(33, 170, 58, 9, 4); clockCtx.fill();
+            const tempW = Math.max(6, Math.min(54, Math.round((Math.max(0, temp) / 45) * 54)));
+            clockCtx.fillStyle = '#ffb3a7';
+            clockCtx.beginPath(); clockCtx.roundRect(35, 172, tempW, 5, 2); clockCtx.fill();
             clockCtx.fillStyle = '#ffffff';
-            clockCtx.fillRect(15, 160, 4, 10);
+            clockCtx.textAlign = 'left';
+            clockCtx.font = 'bold 12px system-ui, sans-serif';
+            clockCtx.fillText(`${temp}°C`, 96, 168);
 
-            // Thanh đo nhiệt độ
-            clockCtx.strokeStyle = '#475569';
-            clockCtx.lineWidth = 1.5;
-            clockCtx.beginPath();
-            clockCtx.roundRect(30, 165, 54, 10, 4);
-            clockCtx.stroke();
-            const tempFillW = Math.max(3, Math.min(50, Math.round((Math.max(0, temp) / 45) * 50)));
-            clockCtx.fillStyle = '#0082ff';
-            clockCtx.beginPath();
-            clockCtx.roundRect(32, 167, tempFillW, 6, 2);
-            clockCtx.fill();
+            clockCtx.fillStyle = '#101420';
+            clockCtx.beginPath(); clockCtx.roundRect(8, 196, 136, 34, 8); clockCtx.fill();
+            clockCtx.strokeStyle = '#2e3856'; clockCtx.stroke();
+            clockCtx.fillStyle = '#4cedff';
+            clockCtx.beginPath(); clockCtx.arc(21, 215, 5, 0, Math.PI * 2); ctxMoveTriangle(clockCtx, 21, 204, 16, 214, 26, 214); clockCtx.fill();
+
+            clockCtx.fillStyle = '#212436';
+            clockCtx.beginPath(); clockCtx.roundRect(33, 210, 58, 9, 4); clockCtx.fill();
+            const humW = Math.max(6, Math.min(54, Math.round((Math.max(0, Math.min(100, humidity)) / 100) * 54)));
+            clockCtx.fillStyle = '#55fd55';
+            clockCtx.beginPath(); clockCtx.roundRect(35, 212, humW, 5, 2); clockCtx.fill();
             clockCtx.fillStyle = '#ffffff';
-            clockCtx.font = 'bold 13px system-ui, sans-serif';
-            clockCtx.fillText(`${temp}°C`, 90, 163);
+            clockCtx.fillText(`${humidity}%`, 96, 208);
 
-            // 5.2 Độ ẩm
-            clockCtx.fillStyle = '#0082ff';
-            clockCtx.beginPath();
-            clockCtx.arc(17, 199, 4.5, 0, Math.PI * 2);
-            clockCtx.fill();
-            clockCtx.beginPath();
-            clockCtx.moveTo(17, 191);
-            clockCtx.lineTo(13, 198);
-            clockCtx.lineTo(21, 198);
-            clockCtx.fill();
+            // 6. Mèo Phi Hành Gia Chibi Kawaii góc dưới phải
+            drawKawaiiSpaceCat2D(clockCtx, 196, 194, ms);
+        }
 
-            // Thanh đo độ ẩm
-            clockCtx.strokeStyle = '#475569';
-            clockCtx.beginPath();
-            clockCtx.roundRect(30, 195, 54, 10, 4);
-            clockCtx.stroke();
-            const humFillW = Math.max(3, Math.min(50, Math.round((Math.max(0, Math.min(100, humidity)) / 100) * 50)));
-            clockCtx.fillStyle = '#ffdc32';
-            clockCtx.beginPath();
-            clockCtx.roundRect(32, 197, humFillW, 6, 2);
-            clockCtx.fill();
-            clockCtx.fillStyle = '#ffffff';
-            clockCtx.font = 'bold 13px system-ui, sans-serif';
-            clockCtx.fillText(`${humidity}%`, 90, 193);
-
-            // 6. Cột phải dưới: Phi hành gia nhấp nhô & Sao lấp lánh
-            const astroBob = Math.sin(Date.now() / 500) * 2;
-            clockCtx.drawImage(astroSpriteImg, 160, 155 + astroBob);
-
-            // Sao lấp lánh xung quanh phi hành gia
-            const starPhase = Math.floor(Date.now() / 400) % 4;
-            const stars = [
-                { x: 152, y: 165 },
-                { x: 230, y: 160 },
-                { x: 154, y: 222 },
-                { x: 226, y: 228 }
-            ];
-            stars.forEach((s, idx) => {
-                clockCtx.fillStyle = (idx === starPhase) ? '#00f2fe' : (idx === (starPhase + 2) % 4 ? '#ffffff' : 'rgba(255,255,255,0.2)');
-                clockCtx.fillRect(s.x, s.y, 2, 2);
-            });
+        function ctxMoveTriangle(c, x1, y1, x2, y2, x3, y3) {
+            c.moveTo(x1, y1); c.lineTo(x2, y2); c.lineTo(x3, y3);
         }
 
         // Lấy thời tiết thực tế từ Open-Meteo API
-        async function fetchRealWeather(lat, lon, cityName, countryCode) {
+        async function fetchRealWeather(lat, lon, cityName, countryCode, autoSyncCube = false) {
             const badge = document.getElementById('weatherStatusBadge');
             try {
-                if (badge) { badge.textContent = 'Đang tải thời tiết...'; badge.style.color = 'var(--accent)'; }
+                if (badge) { badge.textContent = 'Đang cập nhật thời tiết...'; badge.style.color = 'var(--accent)'; }
                 const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code&daily=temperature_2m_max&timezone=auto`;
                 const res = await fetch(url);
                 const data = await res.json();
@@ -4626,7 +4882,7 @@
                     const curHum = Math.round(data.current.relative_humidity_2m);
                     const maxTemp = (data.daily && data.daily.temperature_2m_max && data.daily.temperature_2m_max[0] !== undefined)
                         ? Math.round(data.daily.temperature_2m_max[0])
-                        : (curTemp + 4);
+                        : (curTemp + 3);
                     const wCode = data.current.weather_code;
                     let wText = "Clear";
                     if (wCode >= 1 && wCode <= 3) wText = "Clouds";
@@ -4643,32 +4899,82 @@
                     if (cityName && document.getElementById('clockCityInput')) document.getElementById('clockCityInput').value = cityName;
                     if (countryCode && document.getElementById('clockCountryInput')) document.getElementById('clockCountryInput').value = countryCode;
 
-                    if (badge) { badge.textContent = `● Đã cập nhật (${curTemp}°C, ${wText})`; badge.style.color = 'var(--neon-green)'; }
-                    log(`Thời tiết ${cityName || 'Seoul'}: ${curTemp}°C, Độ ẩm ${curHum}%, Max ${maxTemp}°C, ${wText}`);
+                    if (badge) { badge.textContent = `● Wi-Fi: ${cityName || 'Live'} (${curTemp}°C, ${wText})`; badge.style.color = 'var(--neon-green)'; }
                     lastWeatherFetchTime = Date.now();
+
+                    if (autoSyncCube && isConnected()) {
+                        sendCommand({
+                            cmd: "clock_sync",
+                            city: cityName || 'TP.HCM',
+                            country: countryCode || 'VN',
+                            temp: curTemp,
+                            maxTemp: maxTemp,
+                            humidity: curHum,
+                            weather: wText,
+                            epoch: Math.floor(Date.now() / 1000)
+                        });
+                    }
                 }
             } catch (err) {
-                console.warn('Weather fetch error:', err);
-                if (badge) { badge.textContent = '● Ngoại tuyến (Dùng số mặc định)'; badge.style.color = '#eab308'; }
+                if (badge) { badge.textContent = '● Ngoại tuyến (Dùng thông số lưu sẵn)'; badge.style.color = '#eab308'; }
             }
         }
 
-        // Khởi động Tab 4 & Sự kiện tương tác
+        // Tự động định vị Thành phố & Tọa độ theo mạng Wi-Fi đang kết nối (Không cần bật GPS!)
+        async function fetchWifiLocationAndWeather(syncCube = false) {
+            const badge = document.getElementById('weatherStatusBadge');
+            if (badge) { badge.textContent = '📶 Đang định vị theo mạng Wi-Fi...'; badge.style.color = 'var(--accent)'; }
+
+            const providers = [
+                async () => {
+                    const r = await fetch('https://ipwho.is/');
+                    const j = await r.json();
+                    if (!j || j.success === false) throw new Error('ipwho failed');
+                    return { city: j.city || j.region || 'TP.HCM', country: j.country_code || 'VN', lat: j.latitude, lon: j.longitude };
+                },
+                async () => {
+                    const r = await fetch('https://get.geojs.io/v1/ip/geo.json');
+                    const j = await r.json();
+                    return { city: j.city || 'TP.HCM', country: j.country_code || 'VN', lat: parseFloat(j.latitude), lon: parseFloat(j.longitude) };
+                }
+            ];
+
+            for (const fn of providers) {
+                try {
+                    const loc = await fn();
+                    if (loc && !isNaN(loc.lat) && !isNaN(loc.lon)) {
+                        let cleanCity = String(loc.city).replace(/Ho Chi Minh City/i, 'TP.HCM').replace(/Hồ Chí Minh/i, 'TP.HCM');
+                        await fetchRealWeather(loc.lat, loc.lon, cleanCity, loc.country, syncCube);
+                        log(`📶 Đã lấy vị trí tự động theo Wi-Fi: ${cleanCity} (${loc.country})`);
+                        return;
+                    }
+                } catch (e) { }
+            }
+
+            // Nếu mạng chặn API IP công cộng, nhờ trực tiếp ESP32-S3 lấy qua Wi-Fi nhà!
+            if (isConnected()) {
+                sendCommand({ cmd: 'clock_wifi_geo' });
+            } else {
+                await fetchRealWeather(10.8231, 106.6297, 'TP.HCM', 'VN', false);
+            }
+        }
+
         function initClockTab() {
-            // Chạy vòng lặp render đồng hồ thời gian thực
             if (clockInterval) clearInterval(clockInterval);
-            clockInterval = setInterval(renderLiveClockCanvas, 500);
+            clockInterval = setInterval(renderLiveClockCanvas, 50); // 20 FPS mượt mà cho Mèo Kawaii & Sao băng
             renderLiveClockCanvas();
 
-            // Nút Chiếu Đồng Hồ Lên Cube
+            // Tự động lấy vị trí Wi-Fi ngay khi mở trang
+            fetchWifiLocationAndWeather(false);
+
             const btnPlayClock = document.getElementById('btnPlayClockOnCube');
             if (btnPlayClock) {
                 btnPlayClock.addEventListener('click', () => {
-                    const city = document.getElementById('clockCityInput')?.value || 'Seoul';
-                    const country = document.getElementById('clockCountryInput')?.value || 'KR';
-                    const temp = parseInt(document.getElementById('clockTempInput')?.value) || 14;
-                    const maxTemp = parseInt(document.getElementById('clockMaxTempInput')?.value) || 18;
-                    const humidity = parseInt(document.getElementById('clockHumidityInput')?.value) || 32;
+                    const city = document.getElementById('clockCityInput')?.value || 'TP.HCM';
+                    const country = document.getElementById('clockCountryInput')?.value || 'VN';
+                    const temp = parseInt(document.getElementById('clockTempInput')?.value) || 30;
+                    const maxTemp = parseInt(document.getElementById('clockMaxTempInput')?.value) || 33;
+                    const humidity = parseInt(document.getElementById('clockHumidityInput')?.value) || 68;
                     const weather = document.getElementById('clockWeatherSelect')?.value || 'Clear';
 
                     sendCommand({
@@ -4682,19 +4988,26 @@
                         epoch: Math.floor(Date.now() / 1000),
                         tz: -(new Date().getTimezoneOffset() / 60)
                     });
-                    log(`Đã gửi lệnh chiếu Đồng Hồ Thời Gian Thực (${city}, ${temp}°C) lên Cube!`);
+                    log(`🐱 Đã bật Đồng Hồ Kawaii Space Cat (${city}, ${temp}°C, 0% chớp giật) trên Cube!`);
                 });
             }
 
-            // Nút Đồng bộ thời gian & thời tiết
+            const btnCubeWifiGeo = document.getElementById('btnCubeWifiGeo');
+            if (btnCubeWifiGeo) {
+                btnCubeWifiGeo.addEventListener('click', () => {
+                    sendCommand({ cmd: 'clock_wifi_geo' });
+                    log('📡 Đã yêu cầu Cube tự động định vị Thành phố & Thời tiết theo Wi-Fi nhà!');
+                });
+            }
+
             const btnSync = document.getElementById('btnSyncClockNow');
             if (btnSync) {
                 btnSync.addEventListener('click', () => {
-                    const city = document.getElementById('clockCityInput')?.value || 'Seoul';
-                    const country = document.getElementById('clockCountryInput')?.value || 'KR';
-                    const temp = parseInt(document.getElementById('clockTempInput')?.value) || 14;
-                    const maxTemp = parseInt(document.getElementById('clockMaxTempInput')?.value) || 18;
-                    const humidity = parseInt(document.getElementById('clockHumidityInput')?.value) || 32;
+                    const city = document.getElementById('clockCityInput')?.value || 'TP.HCM';
+                    const country = document.getElementById('clockCountryInput')?.value || 'VN';
+                    const temp = parseInt(document.getElementById('clockTempInput')?.value) || 30;
+                    const maxTemp = parseInt(document.getElementById('clockMaxTempInput')?.value) || 33;
+                    const humidity = parseInt(document.getElementById('clockHumidityInput')?.value) || 68;
                     const weather = document.getElementById('clockWeatherSelect')?.value || 'Clear';
 
                     sendCommand({
@@ -4707,11 +5020,10 @@
                         weather: weather,
                         epoch: Math.floor(Date.now() / 1000)
                     });
-                    log(`Đã đồng bộ giờ thiết bị & thời tiết sang Cube!`);
+                    log(`🔄 Đã đồng bộ giờ & thời tiết sang Cube!`);
                 });
             }
 
-            // Các nút chọn nhanh thành phố
             document.querySelectorAll('.btn-city').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const city = btn.dataset.city;
@@ -4720,79 +5032,32 @@
                     const lon = parseFloat(btn.dataset.lon);
                     document.getElementById('clockCityInput').value = city;
                     document.getElementById('clockCountryInput').value = country;
-                    fetchRealWeather(lat, lon, city, country);
+                    fetchRealWeather(lat, lon, city, country, true);
                 });
             });
 
-            // Nút lấy vị trí hiện tại (GPS / Geolocation)
             const btnGeo = document.getElementById('btnAutoGeoLocation');
             if (btnGeo) {
-                btnGeo.addEventListener('click', () => {
-                    if (navigator.geolocation) {
-                        navigator.geolocation.getCurrentPosition(
-                            pos => {
-                                fetchRealWeather(pos.coords.latitude, pos.coords.longitude, "Vị trí của bạn", "VN");
-                            },
-                            err => {
-                                log("Không thể lấy GPS, đang dùng vị trí mặc định TP.HCM");
-                                fetchRealWeather(10.8231, 106.6297, "TP.HCM", "VN");
-                            }
-                        );
-                    } else {
-                        fetchRealWeather(10.8231, 106.6297, "TP.HCM", "VN");
-                    }
-                });
+                btnGeo.addEventListener('click', () => fetchWifiLocationAndWeather(true));
             }
 
-            // Nút Refresh thời tiết
             const btnRefresh = document.getElementById('btnRefreshWeather');
             if (btnRefresh) {
-                btnRefresh.addEventListener('click', () => {
-                    const city = document.getElementById('clockCityInput')?.value || 'Seoul';
-                    if (city.toLowerCase().includes('hcm') || city.toLowerCase().includes('hồ chí minh')) {
-                        fetchRealWeather(10.8231, 106.6297, "TP.HCM", "VN");
-                    } else if (city.toLowerCase().includes('hà nội') || city.toLowerCase().includes('hanoi')) {
-                        fetchRealWeather(21.0285, 105.8542, "Hà Nội", "VN");
-                    } else if (city.toLowerCase().includes('đà nẵng') || city.toLowerCase().includes('danang')) {
-                        fetchRealWeather(16.0544, 108.2022, "Đà Nẵng", "VN");
-                    } else if (city.toLowerCase().includes('tokyo')) {
-                        fetchRealWeather(35.6762, 139.6503, "Tokyo", "JP");
-                    } else {
-                        fetchRealWeather(37.5665, 126.9780, "Seoul", "KR");
-                    }
-                });
+                btnRefresh.addEventListener('click', () => fetchWifiLocationAndWeather(true));
             }
 
-            // Tự động đồng bộ mỗi 10 phút sang Cube nếu đang mở web
             setInterval(() => {
                 const autoSync = document.getElementById('chkAutoSyncClock');
-                if (autoSync && autoSync.checked && (typeof isConnected !== 'undefined' && isConnected)) {
-                    const city = document.getElementById('clockCityInput')?.value || 'Seoul';
-                    const country = document.getElementById('clockCountryInput')?.value || 'KR';
-                    const temp = parseInt(document.getElementById('clockTempInput')?.value) || 14;
-                    const maxTemp = parseInt(document.getElementById('clockMaxTempInput')?.value) || 18;
-                    const humidity = parseInt(document.getElementById('clockHumidityInput')?.value) || 32;
-                    const weather = document.getElementById('clockWeatherSelect')?.value || 'Clear';
-
-                    sendCommand({
-                        cmd: "clock_sync",
-                        city: city,
-                        country: country,
-                        temp: temp,
-                        maxTemp: maxTemp,
-                        humidity: humidity,
-                        weather: weather,
-                        epoch: Math.floor(Date.now() / 1000)
-                    });
+                if (autoSync && autoSync.checked && isConnected()) {
+                    fetchWifiLocationAndWeather(true);
                 }
             }, 600000);
         }
 
-        // Gọi khởi tạo Tab đồng hồ khi trang web tải xong
         setTimeout(initClockTab, 300);
 
         // ====================================================================
-        // PNG AUTO-BLACK BACKGROUND LISTENERS & MP4 -> MICROSD VIDEO CONVERTER
+        // PNG AUTO-BLACK & BỘ CẮT + CHUYỂN ĐỔI VIDEO >= 30 FPS TẢI MỌI MẠNG
         // ====================================================================
         (function initPngAndVideoFeatures() {
             const chkBlack = document.getElementById('chkAutoBlackPng');
@@ -4809,19 +5074,86 @@
                 });
             }
 
-            // Video Converter & MicroSD Player
+            // Video Interactive 1:1 Cropper & 30+ FPS Converter
             const videoDropzone = document.getElementById('videoDropzone');
             const videoFileInput = document.getElementById('videoFileInput');
             const videoConfigPanel = document.getElementById('videoConfigPanel');
+            const videoCropWorkspace = document.getElementById('videoCropWorkspace');
+            const videoCropSourceCanvas = document.getElementById('videoCropSourceCanvas');
+            const videoCropSourceCtx = videoCropSourceCanvas ? videoCropSourceCanvas.getContext('2d') : null;
+            const videoCropBox = document.getElementById('videoCropBox');
+            const videoCropHandle = document.getElementById('videoCropHandle');
             const videoPreviewCanvas = document.getElementById('videoPreviewCanvas');
             const videoPreviewCtx = videoPreviewCanvas ? videoPreviewCanvas.getContext('2d') : null;
             const videoFileInfo = document.getElementById('videoFileInfo');
             const btnConvertUploadVideo = document.getElementById('btnConvertUploadVideo');
             const btnConvertDownloadVideo = document.getElementById('btnConvertDownloadVideo');
-            const btnPlaySdVideo = document.getElementById('btnPlaySdVideo');
-            const btnDeleteSdVideo = document.getElementById('btnDeleteSdVideo');
 
             let selectedVideoFile = null;
+            let videoSampleFrameCanvas = null;
+            let vidCropState = { x: 0, y: 0, w: 160, h: 160 };
+            let isDragVidBox = false, isResizeVidBox = false, vidDragX = 0, vidDragY = 0;
+
+            function updateVidCropView() {
+                if (!videoCropBox) return;
+                videoCropBox.style.left = vidCropState.x + 'px';
+                videoCropBox.style.top = vidCropState.y + 'px';
+                videoCropBox.style.width = vidCropState.w + 'px';
+                videoCropBox.style.height = vidCropState.w + 'px';
+                if (videoSampleFrameCanvas && videoPreviewCtx && videoCropSourceCanvas.width > 0) {
+                    const sx = (vidCropState.x / videoCropSourceCanvas.width) * videoSampleFrameCanvas.width;
+                    const sy = (vidCropState.y / videoCropSourceCanvas.height) * videoSampleFrameCanvas.height;
+                    const sw = (vidCropState.w / videoCropSourceCanvas.width) * videoSampleFrameCanvas.width;
+                    const sh = (vidCropState.h / videoCropSourceCanvas.height) * videoSampleFrameCanvas.height;
+                    videoPreviewCtx.fillStyle = '#000000';
+                    videoPreviewCtx.fillRect(0, 0, 240, 240);
+                    videoPreviewCtx.drawImage(videoSampleFrameCanvas, sx, sy, sw, sh, 0, 0, 240, 240);
+                }
+            }
+
+            if (videoCropBox && videoCropHandle) {
+                videoCropBox.addEventListener('mousedown', (e) => {
+                    if (e.target === videoCropHandle) return;
+                    isDragVidBox = true; vidDragX = e.clientX - vidCropState.x; vidDragY = e.clientY - vidCropState.y; e.stopPropagation();
+                });
+                videoCropHandle.addEventListener('mousedown', (e) => {
+                    isResizeVidBox = true; vidDragX = e.clientX; vidDragY = vidCropState.w; e.stopPropagation();
+                });
+                window.addEventListener('mousemove', (e) => {
+                    if (isDragVidBox && videoCropSourceCanvas) {
+                        vidCropState.x = Math.max(0, Math.min(e.clientX - vidDragX, videoCropSourceCanvas.width - vidCropState.w));
+                        vidCropState.y = Math.max(0, Math.min(e.clientY - vidDragY, videoCropSourceCanvas.height - vidCropState.h));
+                        updateVidCropView();
+                    } else if (isResizeVidBox && videoCropSourceCanvas) {
+                        let nw = Math.max(48, vidDragY + (e.clientX - vidDragX));
+                        nw = Math.min(nw, videoCropSourceCanvas.width - vidCropState.x, videoCropSourceCanvas.height - vidCropState.y);
+                        vidCropState.w = Math.round(nw); vidCropState.h = Math.round(nw);
+                        updateVidCropView();
+                    }
+                });
+                window.addEventListener('mouseup', () => { isDragVidBox = false; isResizeVidBox = false; });
+
+                videoCropBox.addEventListener('touchstart', (e) => {
+                    if (e.target === videoCropHandle) return;
+                    isDragVidBox = true; vidDragX = e.touches[0].clientX - vidCropState.x; vidDragY = e.touches[0].clientY - vidCropState.y; e.stopPropagation();
+                }, { passive: false });
+                videoCropHandle.addEventListener('touchstart', (e) => {
+                    isResizeVidBox = true; vidDragX = e.touches[0].clientX; vidDragY = vidCropState.w; e.stopPropagation();
+                }, { passive: false });
+                window.addEventListener('touchmove', (e) => {
+                    if (isDragVidBox && videoCropSourceCanvas) {
+                        vidCropState.x = Math.max(0, Math.min(e.touches[0].clientX - vidDragX, videoCropSourceCanvas.width - vidCropState.w));
+                        vidCropState.y = Math.max(0, Math.min(e.touches[0].clientY - vidDragY, videoCropSourceCanvas.height - vidCropState.h));
+                        updateVidCropView();
+                    } else if (isResizeVidBox && videoCropSourceCanvas) {
+                        let nw = Math.max(48, vidDragY + (e.touches[0].clientX - vidDragX));
+                        nw = Math.min(nw, videoCropSourceCanvas.width - vidCropState.x, videoCropSourceCanvas.height - vidCropState.y);
+                        vidCropState.w = Math.round(nw); vidCropState.h = Math.round(nw);
+                        updateVidCropView();
+                    }
+                });
+                window.addEventListener('touchend', () => { isDragVidBox = false; isResizeVidBox = false; });
+            }
 
             if (videoDropzone && videoFileInput) {
                 videoDropzone.addEventListener('click', () => videoFileInput.click());
@@ -4836,14 +5168,20 @@
                 selectedVideoFile = file;
                 if (videoConfigPanel) videoConfigPanel.style.display = 'flex';
                 const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                const saveInp = document.getElementById('videoSaveName');
+                if (saveInp) {
+                    const baseName = file.name.replace(/\.[^.]+$/, '') + '.mjpg';
+                    saveInp.value = sanitizeClientMediaName(baseName, '.mjpg');
+                }
 
                 if (/\.mjp(e)?g$/i.test(file.name)) {
-                    if (videoFileInfo) videoFileInfo.textContent = `🎞️ ${file.name} (${sizeMB} MB • Chuẩn MJPEG sẵn sàng nạp)`;
+                    if (videoCropWorkspace) videoCropWorkspace.style.display = 'none';
+                    if (videoFileInfo) videoFileInfo.textContent = `🎞️ ${file.name} (${sizeMB} MB • Chuẩn MJPEG sẵn sàng tải lên Thẻ nhớ qua mọi mạng)`;
                     return;
                 }
 
                 const tempVid = document.createElement('video');
-                tempVid.preload = 'metadata';
+                tempVid.preload = 'auto';
                 tempVid.muted = true;
                 tempVid.playsInline = true;
                 tempVid.src = URL.createObjectURL(file);
@@ -4855,31 +5193,57 @@
                     tempVid.currentTime = Math.min(0.5, (tempVid.duration || 1) * 0.1);
                 };
                 tempVid.onseeked = () => {
-                    if (videoPreviewCtx) {
-                        drawVideoSquare240(tempVid, videoPreviewCtx);
+                    const vw = tempVid.videoWidth || 240;
+                    const vh = tempVid.videoHeight || 240;
+                    videoSampleFrameCanvas = document.createElement('canvas');
+                    videoSampleFrameCanvas.width = vw;
+                    videoSampleFrameCanvas.height = vh;
+                    videoSampleFrameCanvas.getContext('2d').drawImage(tempVid, 0, 0, vw, vh);
+
+                    if (videoCropSourceCanvas && videoCropSourceCtx) {
+                        const scale = Math.min(360 / vw, 360 / vh, 1.0);
+                        const dw = Math.max(80, Math.round(vw * scale));
+                        const dh = Math.max(80, Math.round(vh * scale));
+                        videoCropSourceCanvas.width = dw;
+                        videoCropSourceCanvas.height = dh;
+                        videoCropSourceCtx.drawImage(videoSampleFrameCanvas, 0, 0, dw, dh);
+
+                        const side = Math.min(dw, dh);
+                        vidCropState.w = side; vidCropState.h = side;
+                        vidCropState.x = Math.round((dw - side) / 2);
+                        vidCropState.y = Math.round((dh - side) / 2);
+                        if (videoCropWorkspace) videoCropWorkspace.style.display = 'flex';
+                        updateVidCropView();
                     }
                     URL.revokeObjectURL(tempVid.src);
                 };
             }
 
-            function drawVideoSquare240(vid, ctx2d) {
+            function drawCroppedVideoFrame240(vid, ctx2d) {
                 const vw = vid.videoWidth || 240;
                 const vh = vid.videoHeight || 240;
-                const side = Math.min(vw, vh);
-                const sx = Math.floor((vw - side) / 2);
-                const sy = Math.floor((vh - side) / 2);
+                let sx, sy, sw, sh;
+                if (videoCropSourceCanvas && videoCropSourceCanvas.width > 0 && vidCropState.w > 0) {
+                    sx = (vidCropState.x / videoCropSourceCanvas.width) * vw;
+                    sy = (vidCropState.y / videoCropSourceCanvas.height) * vh;
+                    sw = (vidCropState.w / videoCropSourceCanvas.width) * vw;
+                    sh = (vidCropState.h / videoCropSourceCanvas.height) * vh;
+                } else {
+                    const side = Math.min(vw, vh);
+                    sx = (vw - side) / 2; sy = (vh - side) / 2; sw = side; sh = side;
+                }
                 ctx2d.fillStyle = '#000000';
                 ctx2d.fillRect(0, 0, 240, 240);
-                ctx2d.drawImage(vid, sx, sy, side, side, 0, 0, 240, 240);
+                ctx2d.drawImage(vid, sx, sy, sw, sh, 0, 0, 240, 240);
             }
 
             async function convertVideoToMjpgBlob(file) {
                 if (/\.mjp(e)?g$/i.test(file.name)) {
                     return file;
                 }
-                const fps = parseInt(document.getElementById('videoFpsSelect')?.value) || 20;
+                const fps = parseInt(document.getElementById('videoFpsSelect')?.value) || 30;
                 const maxSec = parseInt(document.getElementById('videoMaxSecSelect')?.value) || 0;
-                const delayMs = Math.round(1000 / fps);
+                const delayMs = Math.max(20, Math.round(1000 / fps));
 
                 const pCard = document.getElementById('videoProgressCard');
                 const pFill = document.getElementById('videoProgressFill');
@@ -4887,7 +5251,7 @@
                 const pStat = document.getElementById('videoProgressStatus');
                 const pTitle = document.getElementById('videoProgressTitle');
                 if (pCard) pCard.style.display = 'block';
-                if (pTitle) pTitle.textContent = '🎥 Đang chuyển đổi MP4 sang chuẩn Hologram 240×240...';
+                if (pTitle) pTitle.textContent = `🎥 Đang cắt & nén MP4 sang chuẩn ${fps} FPS (240×240)...`;
 
                 const vid = document.createElement('video');
                 vid.muted = true;
@@ -4908,21 +5272,21 @@
                 workCanvas.height = 240;
                 const wctx = workCanvas.getContext('2d');
 
+                // Chất lượng JPEG 0.72 cho ảnh 240x240 siêu nét (~7-10KB/frame), đọc SD cực lẹ đạt >35 FPS!
                 const chunks = [];
                 for (let i = 0; i < totalFrames; i++) {
-                    const t = Math.min(vid.duration - 0.01, i / fps);
-                    vid.currentTime = Math.max(0, t);
+                    const t = Math.min(Math.max(0, vid.duration - 0.01), i / fps);
+                    vid.currentTime = t;
                     await new Promise((r) => { vid.onseeked = () => r(); });
 
-                    drawVideoSquare240(vid, wctx);
-                    if (videoPreviewCtx && (i % 3 === 0)) {
+                    drawCroppedVideoFrame240(vid, wctx);
+                    if (videoPreviewCtx && (i % 4 === 0)) {
                         videoPreviewCtx.drawImage(workCanvas, 0, 0);
                     }
 
-                    const jpegBlob = await new Promise((r) => workCanvas.toBlob(r, 'image/jpeg', 0.78));
+                    const jpegBlob = await new Promise((r) => workCanvas.toBlob(r, 'image/jpeg', 0.72));
                     const jpegBuf = new Uint8Array(await jpegBlob.arrayBuffer());
 
-                    // Header 10 byte: "MJPG" + delayMs(2B BE) + frameLen(4B BE)
                     const hdr = new Uint8Array(10);
                     hdr[0] = 0x4D; hdr[1] = 0x4A; hdr[2] = 0x50; hdr[3] = 0x47;
                     hdr[4] = (delayMs >> 8) & 0xFF;
@@ -4939,37 +5303,25 @@
                     const pct = Math.round(((i + 1) / totalFrames) * 100);
                     if (pFill) pFill.style.width = pct + '%';
                     if (pPct) pPct.textContent = pct + '%';
-                    if (pStat) pStat.textContent = `Đã nén ${i + 1}/${totalFrames} frames (${fps} FPS)`;
+                    if (pStat) pStat.textContent = `Đã trích xuất ${i + 1}/${totalFrames} frames (${fps} FPS)`;
                 }
 
                 URL.revokeObjectURL(objUrl);
                 return new Blob(chunks, { type: 'application/octet-stream' });
             }
 
-            function getCubeHttpOrigin() {
-                if (currentConnType === 'lan' && connInput && connInput.value) {
-                    const host = connInput.value.trim().replace(/^wss?:\/\//, '').split(':')[0];
-                    if (host && /^(\d{1,3}\.){3}\d{1,3}$/.test(host)) {
-                        return `http://${host}`;
-                    }
-                }
-                if (/^(\d{1,3}\.){3}\d{1,3}$/.test(window.location.hostname)) {
-                    return `http://${window.location.hostname}`;
-                }
-                return '';
-            }
-
             if (btnConvertDownloadVideo) {
                 btnConvertDownloadVideo.addEventListener('click', async () => {
                     if (!selectedVideoFile) { alert('Vui lòng chọn file Video trước!'); return; }
+                    const saveName = sanitizeClientMediaName(document.getElementById('videoSaveName')?.value || 'video_30fps.mjpg', '.mjpg');
                     try {
                         btnConvertDownloadVideo.disabled = true;
                         const mjpgBlob = await convertVideoToMjpgBlob(selectedVideoFile);
                         const a = document.createElement('a');
                         a.href = URL.createObjectURL(mjpgBlob);
-                        a.download = 'video.mjpg';
+                        a.download = saveName;
                         a.click();
-                        log(`💾 Đã tạo file video.mjpg (${(mjpgBlob.size / (1024 * 1024)).toFixed(2)} MB)! Hãy chép vào thư mục gốc Thẻ nhớ MicroSD rồi cắm vào Cube.`);
+                        log(`💾 Đã xuất file "${saveName}" (${(mjpgBlob.size / (1024 * 1024)).toFixed(2)} MB) chuẩn ≥30 FPS!`);
                     } catch (err) {
                         alert('Lỗi chuyển đổi Video: ' + err.message);
                     } finally {
@@ -4978,14 +5330,15 @@
                 });
             }
 
+            // TẢI VIDEO LÊN THẺ NHỚ TỪ BẤT KỲ MẠNG NÀO (CẢ WI-FI NỘI BỘ LẪN KHÁC WI-FI / 4G TỪ XA!)
             if (btnConvertUploadVideo) {
                 btnConvertUploadVideo.addEventListener('click', async () => {
                     if (!selectedVideoFile) { alert('Vui lòng chọn file Video trước!'); return; }
-                    const origin = getCubeHttpOrigin();
-                    if (!origin) {
-                        alert('Để bắn Video tốc độ cao qua Wi-Fi vào Thẻ nhớ, hãy kết nối cùng mạng Wi-Fi (LAN) với Cube, hoặc bấm nút [Tải file video.mjpg] để chép trực tiếp vào Thẻ nhớ!');
+                    if (!isConnected() && !getCubeHttpOrigin()) {
+                        alert('Chưa kết nối tới Cube! Hãy kết nối qua Wi-Fi Nhà (LAN) hoặc Khác Wi-Fi / 4G (nhập mã HOLO-B1D8) ở thanh trên cùng.');
                         return;
                     }
+                    const saveName = sanitizeClientMediaName(document.getElementById('videoSaveName')?.value || 'video_30fps.mjpg', '.mjpg');
                     try {
                         btnConvertUploadVideo.disabled = true;
                         const mjpgBlob = await convertVideoToMjpgBlob(selectedVideoFile);
@@ -4993,77 +5346,43 @@
                         const pStat = document.getElementById('videoProgressStatus');
                         const pFill = document.getElementById('videoProgressFill');
                         const pPct = document.getElementById('videoProgressPct');
-                        if (pTitle) pTitle.textContent = '🚀 Đang truyền Video qua Wi-Fi vào Thẻ nhớ Cube...';
+                        const pMode = document.getElementById('videoTransferModeBadge');
 
-                        await new Promise((resolve, reject) => {
-                            const fd = new FormData();
-                            fd.append('file', mjpgBlob, 'video.mjpg');
-                            const xhr = new XMLHttpRequest();
-                            xhr.open('POST', `${origin}/upload_video`, true);
-                            xhr.upload.onprogress = (ev) => {
-                                if (ev.lengthComputable) {
-                                    const pct = Math.round((ev.loaded / ev.total) * 100);
-                                    if (pFill) pFill.style.width = pct + '%';
-                                    if (pPct) pPct.textContent = pct + '%';
-                                    if (pStat) pStat.textContent = `Đã truyền ${(ev.loaded / 1024).toFixed(0)} / ${(ev.total / 1024).toFixed(0)} KB`;
-                                }
-                            };
-                            xhr.onload = () => (xhr.status >= 200 && xhr.status < 300) ? resolve() : reject(new Error(`HTTP ${xhr.status}`));
-                            xhr.onerror = () => reject(new Error('Không kết nối được HTTP tới Cube'));
-                            xhr.timeout = 120000;
-                            xhr.send(fd);
+                        if (pTitle) pTitle.textContent = `🚀 Đang lưu "${saveName}" (${(mjpgBlob.size / (1024 * 1024)).toFixed(2)} MB) vào Thẻ nhớ...`;
+
+                        await uploadMediaSmart(mjpgBlob, saveName, (pct, loaded, total, modeStr) => {
+                            if (pFill) pFill.style.width = pct + '%';
+                            if (pPct) pPct.textContent = pct + '%';
+                            if (pMode) pMode.textContent = modeStr;
+                            if (pStat) pStat.textContent = `Đã truyền ${(loaded / 1024).toFixed(0)} / ${(total / 1024).toFixed(0)} KB (${pct}%)`;
                         });
-                        log('🎬 Đã nạp xong Video vào Thẻ nhớ Cube và bắt đầu trình chiếu!');
+
+                        if (pTitle) pTitle.textContent = `✅ Đã lưu "${saveName}" & đang phát ≥30 FPS!`;
+                        log(`🎬 Đã nạp thành công "${saveName}" vào Thẻ nhớ MicroSD và bắt đầu phát 30+ FPS!`);
+                        setTimeout(refreshSdMediaLibrary, 400);
                     } catch (err) {
-                        alert('Lỗi nạp Video: ' + err.message);
+                        log(`❌ Lỗi tải Video: ${err.message}`);
+                        alert('Lỗi tải Video: ' + err.message);
                     } finally {
                         btnConvertUploadVideo.disabled = false;
                     }
                 });
             }
 
-            if (btnPlaySdVideo) {
-                btnPlaySdVideo.addEventListener('click', () => {
-                    sendCommand({ cmd: 'video' });
-                    log('▶️ Đã gửi lệnh phát Video (/video.mjpg) từ Thẻ nhớ!');
-                });
-            }
-
-            if (btnDeleteSdVideo) {
-                btnDeleteSdVideo.addEventListener('click', () => {
-                    if (confirm('Xóa file /video.mjpg khỏi bộ nhớ Cube?')) {
-                        sendCommand({ cmd: 'del_video' });
-                        log('🗑️ Đã gửi lệnh xóa file /video.mjpg.');
-                    }
-                });
-            }
-
-            // Cập nhật nhiệt độ chip ESP32-S3 & trạng thái thẻ nhớ định kỳ khi ở LAN
+            // Đồng bộ định kỳ nhiệt độ chip & danh sách thẻ nhớ
             async function pollHardwareStatus() {
                 const origin = getCubeHttpOrigin();
-                if (!origin) return;
+                if (!origin || currentConnType !== 'lan') return;
                 try {
-                    const r = await fetch(`${origin}/status`, { cache: 'no-store' });
+                    const r = await fetch(`${origin}/media_list`, { cache: 'no-store' });
                     if (!r.ok) return;
-                    const st = await r.json();
-                    const tBadge = document.getElementById('hwTempBadge');
-                    if (tBadge && st.chipTempC !== undefined) {
-                        const sdTxt = st.sdMounted ? `• SD ${st.sdTotalMB || ''}MB` : `• ${st.storage || 'Flash'}`;
-                        tBadge.textContent = `• 🌡️ ${st.chipTempC}°C ${sdTxt}`;
-                        tBadge.style.color = st.chipTempC >= 65 ? '#ff6b6b' : 'var(--neon-green)';
-                    }
-                    const sdVid = document.getElementById('sdVideoBadge');
-                    if (sdVid) {
-                        if (st.sdMounted) {
-                            sdVid.textContent = st.hasVideo ? `SD Sẵn sàng • Có Video (${(st.videoSize / (1024*1024)).toFixed(1)}MB)` : `SD Sẵn sàng (${st.sdTotalMB}MB)`;
-                        } else {
-                            sdVid.textContent = 'Chưa cắm thẻ MicroSD (Đang dùng Flash)';
-                        }
-                    }
-                } catch (e) {}
+                    const data = await r.json();
+                    latestMediaListData = data;
+                    renderSdMediaListUI(data);
+                } catch (e) { }
             }
-            setInterval(pollHardwareStatus, 8000);
-            setTimeout(pollHardwareStatus, 1500);
+            setInterval(pollHardwareStatus, 10000);
+            setTimeout(pollHardwareStatus, 1200);
         })();
 
 
