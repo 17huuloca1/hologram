@@ -864,948 +864,8 @@
             }
         }
     </style>
-    <script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js">
-        // ====================================================================
-        // TAB 4: REAL-TIME DIGITAL CLOCK & SPACE WEATHER STATION
-        // ====================================================================
-        const clockCanvas = document.getElementById('clockCanvas');
-        const clockCtx = clockCanvas ? clockCanvas.getContext('2d') : null;
-        let clockInterval = null;
-        let lastWeatherFetchTime = 0;
-
-        // Bitmap phi hành gia 64x64 cho Canvas
-        const astroSpriteImg = document.createElement('canvas');
-        astroSpriteImg.width = 64;
-        astroSpriteImg.height = 64;
-        const astroCtx = astroSpriteImg.getContext('2d');
-
-        // Khởi tạo sprite phi hành gia
-        (function initAstroSprite() {
-            astroCtx.fillStyle = '#ffffff';
-            // Vẽ đầu, mũ bảo hộ, cơ thể, ba lô
-            astroCtx.beginPath();
-            astroCtx.ellipse(32, 28, 16, 16, 0, 0, Math.PI * 2);
-            astroCtx.lineWidth = 3;
-            astroCtx.strokeStyle = '#ffffff';
-            astroCtx.stroke();
-            
-            // Kính chắn gió mũ bảo hộ
-            astroCtx.fillStyle = '#0f172a';
-            astroCtx.beginPath();
-            astroCtx.ellipse(32, 28, 11, 9, 0, 0, Math.PI * 2);
-            astroCtx.fill();
-            astroCtx.strokeStyle = '#38bdf8';
-            astroCtx.lineWidth = 1.5;
-            astroCtx.stroke();
-            // Điểm sáng kính
-            astroCtx.fillStyle = '#ffffff';
-            astroCtx.beginPath();
-            astroCtx.ellipse(36, 25, 3, 2, 0, 0, Math.PI * 2);
-            astroCtx.fill();
-
-            // Thân và balo
-            astroCtx.strokeStyle = '#ffffff';
-            astroCtx.lineWidth = 3;
-            astroCtx.beginPath();
-            astroCtx.roundRect(24, 42, 16, 16, 4);
-            astroCtx.stroke();
-            // Balo phản lực
-            astroCtx.beginPath();
-            astroCtx.roundRect(16, 40, 7, 18, 3);
-            astroCtx.stroke();
-            // Tay và chân
-            astroCtx.beginPath();
-            astroCtx.moveTo(24, 46);
-            astroCtx.lineTo(16, 52);
-            astroCtx.moveTo(40, 46);
-            astroCtx.lineTo(46, 54);
-            astroCtx.moveTo(28, 58);
-            astroCtx.lineTo(26, 62);
-            astroCtx.moveTo(36, 58);
-            astroCtx.lineTo(38, 62);
-            astroCtx.stroke();
-        })();
-
-        // Hàm vẽ số điện tử bo góc (Hours / Minutes)
-        function drawCanvasClockDigit(ctx, x, y, digit, w, h, th, color, isHollow) {
-            const segs = [0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F];
-            const m = segs[digit] || 0;
-            const halfH = Math.floor(h / 2);
-            const r = 3;
-
-            if (digit === 0 && isHollow) {
-                ctx.fillStyle = color;
-                ctx.beginPath();
-                ctx.roundRect(x, y, w, h, 6);
-                ctx.fill();
-                ctx.fillStyle = '#000000';
-                ctx.beginPath();
-                ctx.roundRect(x + th, y + th, w - 2 * th, h - 2 * th, 4);
-                ctx.fill();
-                return;
-            }
-
-            if (digit === 1) {
-                ctx.fillStyle = color;
-                ctx.beginPath();
-                ctx.roundRect(x + Math.floor(w/2 - th/2), y, th, h, 2);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.moveTo(x + Math.floor(w/2 - th/2), y);
-                ctx.lineTo(x + Math.floor(w/2 - th/2), y + 12);
-                ctx.lineTo(x + Math.floor(w/2 - th/2) - 8, y + 12);
-                ctx.fill();
-                return;
-            }
-
-            ctx.fillStyle = color;
-            function rect(rx, ry, rw, rh) {
-                ctx.beginPath();
-                ctx.roundRect(rx, ry, rw, rh, r);
-                ctx.fill();
-            }
-
-            if (m & 0x01) rect(x, y, w, th);                           // top
-            if (m & 0x02) rect(x + w - th, y, th, halfH + 1);          // top-right
-            if (m & 0x04) rect(x + w - th, y + halfH, th, halfH + 1);  // bottom-right
-            if (m & 0x08) rect(x, y + h - th, w, th);                  // bottom
-            if (m & 0x10) rect(x, y + halfH, th, halfH + 1);          // bottom-left
-            if (m & 0x20) rect(x, y, th, halfH + 1);                  // top-left
-            if (m & 0x40) rect(x, y + halfH - Math.floor(th/2), w, th);// middle
-        }
-
-        // Vẽ toàn bộ màn hình đồng hồ Canvas 240x240 theo thời gian thực
-        function renderLiveClockCanvas() {
-            if (!clockCtx) return;
-            const now = new Date();
-            let hours = now.getHours();
-            const minutes = now.getMinutes();
-            const seconds = now.getSeconds();
-            const is24H = document.getElementById('chk24HourFormat') ? document.getElementById('chk24HourFormat').checked : true;
-            if (!is24H) {
-                hours = hours % 12 || 12;
-            }
-
-            const city = (document.getElementById('clockCityInput') ? document.getElementById('clockCityInput').value : 'Seoul') || 'Seoul';
-            const country = (document.getElementById('clockCountryInput') ? document.getElementById('clockCountryInput').value : 'KR') || 'KR';
-            const temp = parseInt(document.getElementById('clockTempInput')?.value) || 14;
-            const maxTemp = parseInt(document.getElementById('clockMaxTempInput')?.value) || 18;
-            const humidity = parseInt(document.getElementById('clockHumidityInput')?.value) || 32;
-            const weather = document.getElementById('clockWeatherSelect')?.value || 'Clear';
-
-            // 0. Xóa nền đen tuyệt đối (chuẩn Hologram)
-            clockCtx.fillStyle = '#000000';
-            clockCtx.fillRect(0, 0, 240, 240);
-
-            // 1. Dòng 1: Thành phố (Vàng) & Huy hiệu Quốc gia (Xanh lá)
-            clockCtx.fillStyle = '#ffb703';
-            clockCtx.font = 'bold 18px system-ui, -apple-system, sans-serif';
-            clockCtx.textAlign = 'left';
-            clockCtx.textBaseline = 'top';
-            clockCtx.fillText(city, 12, 8);
-
-            const cityMetrics = clockCtx.measureText(city);
-            let badgeX = 12 + Math.min(cityMetrics.width + 8, 120);
-            clockCtx.fillStyle = '#70e000';
-            clockCtx.beginPath();
-            clockCtx.roundRect(badgeX, 7, 36, 18, 4);
-            clockCtx.fill();
-
-            clockCtx.fillStyle = '#000000';
-            clockCtx.font = 'bold 12px system-ui, sans-serif';
-            clockCtx.textAlign = 'center';
-            clockCtx.fillText(country, badgeX + 18, 10);
-
-            // Biểu tượng Mặt trời / Trăng
-            const realHour = now.getHours();
-            if (realHour >= 6 && realHour < 18) {
-                // Mặt trời cam đất
-                clockCtx.fillStyle = '#e07a5f';
-                clockCtx.beginPath();
-                clockCtx.arc(206, 18, 14, 0, Math.PI * 2);
-                clockCtx.fill();
-            } else {
-                // Mặt trăng khuyết
-                clockCtx.fillStyle = '#ffb703';
-                clockCtx.beginPath();
-                clockCtx.arc(206, 18, 14, 0, Math.PI * 2);
-                clockCtx.fill();
-                clockCtx.fillStyle = '#000000';
-                clockCtx.beginPath();
-                clockCtx.arc(200, 14, 12, 0, Math.PI * 2);
-                clockCtx.fill();
-            }
-
-            // 2. Dòng 2: Max temp
-            clockCtx.fillStyle = '#ffffff';
-            clockCtx.font = '13px system-ui, sans-serif';
-            clockCtx.textAlign = 'left';
-            clockCtx.fillText(`Max temp ${maxTemp}°C`, 12, 34);
-
-            // 3. Khối đồng hồ số khổng lồ (Hours: White, Minutes: Gold Outline)
-            const h1 = Math.floor(hours / 10);
-            const h2 = hours % 10;
-            const m1 = Math.floor(minutes / 10);
-            const m2 = minutes % 10;
-
-            drawCanvasClockDigit(clockCtx, 12, 58, h1, 26, 64, 7, '#ffffff', false);
-            drawCanvasClockDigit(clockCtx, 42, 58, h2, 26, 64, 7, '#ffffff', false);
-
-            // Dấu hai chấm (:)
-            clockCtx.fillStyle = '#ffffff';
-            clockCtx.fillRect(75, 74, 6, 8);
-            clockCtx.fillRect(75, 100, 6, 8);
-
-            // Minutes (Vàng cam viền rỗng)
-            drawCanvasClockDigit(clockCtx, 88, 58, m1, 26, 64, 7, '#ffb703', true);
-            drawCanvasClockDigit(clockCtx, 118, 58, m2, 26, 64, 7, '#ffb703', true);
-
-            // Huy hiệu thời tiết
-            clockCtx.fillStyle = '#ffffff';
-            clockCtx.beginPath();
-            clockCtx.roundRect(154, 56, 74, 22, 5);
-            clockCtx.fill();
-            clockCtx.fillStyle = '#14234b';
-            clockCtx.font = 'bold 13px system-ui, sans-serif';
-            clockCtx.textAlign = 'center';
-            clockCtx.fillText(weather, 191, 60);
-
-            // Số Giây (Seconds)
-            clockCtx.fillStyle = '#ffffff';
-            clockCtx.font = 'bold 28px Consolas, monospace';
-            clockCtx.textAlign = 'left';
-            const secStr = String(seconds).padStart(2, '0');
-            clockCtx.fillText(secStr, 170, 88);
-
-            // 4. Dòng 4: Ngày tháng & Thứ
-            const daysArr = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-            const dayStr = daysArr[now.getDay()];
-            const dateStr = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
-
-            clockCtx.fillStyle = '#ffffff';
-            clockCtx.font = '14px system-ui, sans-serif';
-            clockCtx.fillText(dateStr, 12, 134);
-            clockCtx.fillStyle = '#70e000';
-            clockCtx.font = 'bold 14px system-ui, sans-serif';
-            clockCtx.fillText(dayStr, 118, 134);
-
-            // 5. Cột trái dưới: Thanh đo Nhiệt độ & Độ ẩm
-            // 5.1 Nhiệt độ
-            clockCtx.fillStyle = '#ef4444';
-            clockCtx.beginPath();
-            clockCtx.arc(17, 172, 5, 0, Math.PI * 2);
-            clockCtx.fill();
-            clockCtx.fillStyle = '#ffffff';
-            clockCtx.fillRect(15, 160, 4, 10);
-
-            // Thanh đo nhiệt độ
-            clockCtx.strokeStyle = '#475569';
-            clockCtx.lineWidth = 1.5;
-            clockCtx.beginPath();
-            clockCtx.roundRect(30, 165, 54, 10, 4);
-            clockCtx.stroke();
-            const tempFillW = Math.max(3, Math.min(50, Math.round((Math.max(0, temp) / 45) * 50)));
-            clockCtx.fillStyle = '#0082ff';
-            clockCtx.beginPath();
-            clockCtx.roundRect(32, 167, tempFillW, 6, 2);
-            clockCtx.fill();
-            clockCtx.fillStyle = '#ffffff';
-            clockCtx.font = 'bold 13px system-ui, sans-serif';
-            clockCtx.fillText(`${temp}°C`, 90, 163);
-
-            // 5.2 Độ ẩm
-            clockCtx.fillStyle = '#0082ff';
-            clockCtx.beginPath();
-            clockCtx.arc(17, 199, 4.5, 0, Math.PI * 2);
-            clockCtx.fill();
-            clockCtx.beginPath();
-            clockCtx.moveTo(17, 191);
-            clockCtx.lineTo(13, 198);
-            clockCtx.lineTo(21, 198);
-            clockCtx.fill();
-
-            // Thanh đo độ ẩm
-            clockCtx.strokeStyle = '#475569';
-            clockCtx.beginPath();
-            clockCtx.roundRect(30, 195, 54, 10, 4);
-            clockCtx.stroke();
-            const humFillW = Math.max(3, Math.min(50, Math.round((Math.max(0, Math.min(100, humidity)) / 100) * 50)));
-            clockCtx.fillStyle = '#ffdc32';
-            clockCtx.beginPath();
-            clockCtx.roundRect(32, 197, humFillW, 6, 2);
-            clockCtx.fill();
-            clockCtx.fillStyle = '#ffffff';
-            clockCtx.font = 'bold 13px system-ui, sans-serif';
-            clockCtx.fillText(`${humidity}%`, 90, 193);
-
-            // 6. Cột phải dưới: Phi hành gia nhấp nhô & Sao lấp lánh
-            const astroBob = Math.sin(Date.now() / 500) * 2;
-            clockCtx.drawImage(astroSpriteImg, 160, 155 + astroBob);
-
-            // Sao lấp lánh xung quanh phi hành gia
-            const starPhase = Math.floor(Date.now() / 400) % 4;
-            const stars = [
-                { x: 152, y: 165 },
-                { x: 230, y: 160 },
-                { x: 154, y: 222 },
-                { x: 226, y: 228 }
-            ];
-            stars.forEach((s, idx) => {
-                clockCtx.fillStyle = (idx === starPhase) ? '#00f2fe' : (idx === (starPhase + 2) % 4 ? '#ffffff' : 'rgba(255,255,255,0.2)');
-                clockCtx.fillRect(s.x, s.y, 2, 2);
-            });
-        }
-
-        // Lấy thời tiết thực tế từ Open-Meteo API
-        async function fetchRealWeather(lat, lon, cityName, countryCode) {
-            const badge = document.getElementById('weatherStatusBadge');
-            try {
-                if (badge) { badge.textContent = 'Đang tải thời tiết...'; badge.style.color = 'var(--accent)'; }
-                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code&daily=temperature_2m_max&timezone=auto`;
-                const res = await fetch(url);
-                const data = await res.json();
-                if (data && data.current) {
-                    const curTemp = Math.round(data.current.temperature_2m);
-                    const curHum = Math.round(data.current.relative_humidity_2m);
-                    const maxTemp = (data.daily && data.daily.temperature_2m_max && data.daily.temperature_2m_max[0] !== undefined)
-                        ? Math.round(data.daily.temperature_2m_max[0])
-                        : (curTemp + 4);
-                    const wCode = data.current.weather_code;
-                    let wText = "Clear";
-                    if (wCode >= 1 && wCode <= 3) wText = "Clouds";
-                    else if (wCode >= 45 && wCode <= 48) wText = "Fog";
-                    else if (wCode >= 51 && wCode <= 67) wText = "Rain";
-                    else if (wCode >= 71 && wCode <= 77) wText = "Snow";
-                    else if (wCode >= 80 && wCode <= 82) wText = "Showers";
-                    else if (wCode >= 95) wText = "Thunder";
-
-                    if (document.getElementById('clockTempInput')) document.getElementById('clockTempInput').value = curTemp;
-                    if (document.getElementById('clockMaxTempInput')) document.getElementById('clockMaxTempInput').value = maxTemp;
-                    if (document.getElementById('clockHumidityInput')) document.getElementById('clockHumidityInput').value = curHum;
-                    if (document.getElementById('clockWeatherSelect')) document.getElementById('clockWeatherSelect').value = wText;
-                    if (cityName && document.getElementById('clockCityInput')) document.getElementById('clockCityInput').value = cityName;
-                    if (countryCode && document.getElementById('clockCountryInput')) document.getElementById('clockCountryInput').value = countryCode;
-
-                    if (badge) { badge.textContent = `● Đã cập nhật (${curTemp}°C, ${wText})`; badge.style.color = 'var(--neon-green)'; }
-                    log(`Thời tiết ${cityName || 'Seoul'}: ${curTemp}°C, Độ ẩm ${curHum}%, Max ${maxTemp}°C, ${wText}`);
-                    lastWeatherFetchTime = Date.now();
-                }
-            } catch (err) {
-                console.warn('Weather fetch error:', err);
-                if (badge) { badge.textContent = '● Ngoại tuyến (Dùng số mặc định)'; badge.style.color = '#eab308'; }
-            }
-        }
-
-        // Khởi động Tab 4 & Sự kiện tương tác
-        function initClockTab() {
-            // Chạy vòng lặp render đồng hồ thời gian thực
-            if (clockInterval) clearInterval(clockInterval);
-            clockInterval = setInterval(renderLiveClockCanvas, 500);
-            renderLiveClockCanvas();
-
-            // Nút Chiếu Đồng Hồ Lên Cube
-            const btnPlayClock = document.getElementById('btnPlayClockOnCube');
-            if (btnPlayClock) {
-                btnPlayClock.addEventListener('click', () => {
-                    const city = document.getElementById('clockCityInput')?.value || 'Seoul';
-                    const country = document.getElementById('clockCountryInput')?.value || 'KR';
-                    const temp = parseInt(document.getElementById('clockTempInput')?.value) || 14;
-                    const maxTemp = parseInt(document.getElementById('clockMaxTempInput')?.value) || 18;
-                    const humidity = parseInt(document.getElementById('clockHumidityInput')?.value) || 32;
-                    const weather = document.getElementById('clockWeatherSelect')?.value || 'Clear';
-
-                    sendCommand({
-                        cmd: "clock",
-                        city: city,
-                        country: country,
-                        temp: temp,
-                        maxTemp: maxTemp,
-                        humidity: humidity,
-                        weather: weather,
-                        epoch: Math.floor(Date.now() / 1000),
-                        tz: -(new Date().getTimezoneOffset() / 60)
-                    });
-                    log(`Đã gửi lệnh chiếu Đồng Hồ Thời Gian Thực (${city}, ${temp}°C) lên Cube!`);
-                });
-            }
-
-            // Nút Đồng bộ thời gian & thời tiết
-            const btnSync = document.getElementById('btnSyncClockNow');
-            if (btnSync) {
-                btnSync.addEventListener('click', () => {
-                    const city = document.getElementById('clockCityInput')?.value || 'Seoul';
-                    const country = document.getElementById('clockCountryInput')?.value || 'KR';
-                    const temp = parseInt(document.getElementById('clockTempInput')?.value) || 14;
-                    const maxTemp = parseInt(document.getElementById('clockMaxTempInput')?.value) || 18;
-                    const humidity = parseInt(document.getElementById('clockHumidityInput')?.value) || 32;
-                    const weather = document.getElementById('clockWeatherSelect')?.value || 'Clear';
-
-                    sendCommand({
-                        cmd: "clock_sync",
-                        city: city,
-                        country: country,
-                        temp: temp,
-                        maxTemp: maxTemp,
-                        humidity: humidity,
-                        weather: weather,
-                        epoch: Math.floor(Date.now() / 1000)
-                    });
-                    log(`Đã đồng bộ giờ thiết bị & thời tiết sang Cube!`);
-                });
-            }
-
-            // Các nút chọn nhanh thành phố
-            document.querySelectorAll('.btn-city').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const city = btn.dataset.city;
-                    const country = btn.dataset.country;
-                    const lat = parseFloat(btn.dataset.lat);
-                    const lon = parseFloat(btn.dataset.lon);
-                    document.getElementById('clockCityInput').value = city;
-                    document.getElementById('clockCountryInput').value = country;
-                    fetchRealWeather(lat, lon, city, country);
-                });
-            });
-
-            // Nút lấy vị trí hiện tại (GPS / Geolocation)
-            const btnGeo = document.getElementById('btnAutoGeoLocation');
-            if (btnGeo) {
-                btnGeo.addEventListener('click', () => {
-                    if (navigator.geolocation) {
-                        navigator.geolocation.getCurrentPosition(
-                            pos => {
-                                fetchRealWeather(pos.coords.latitude, pos.coords.longitude, "Vị trí của bạn", "VN");
-                            },
-                            err => {
-                                log("Không thể lấy GPS, đang dùng vị trí mặc định TP.HCM");
-                                fetchRealWeather(10.8231, 106.6297, "TP.HCM", "VN");
-                            }
-                        );
-                    } else {
-                        fetchRealWeather(10.8231, 106.6297, "TP.HCM", "VN");
-                    }
-                });
-            }
-
-            // Nút Refresh thời tiết
-            const btnRefresh = document.getElementById('btnRefreshWeather');
-            if (btnRefresh) {
-                btnRefresh.addEventListener('click', () => {
-                    const city = document.getElementById('clockCityInput')?.value || 'Seoul';
-                    if (city.toLowerCase().includes('hcm') || city.toLowerCase().includes('hồ chí minh')) {
-                        fetchRealWeather(10.8231, 106.6297, "TP.HCM", "VN");
-                    } else if (city.toLowerCase().includes('hà nội') || city.toLowerCase().includes('hanoi')) {
-                        fetchRealWeather(21.0285, 105.8542, "Hà Nội", "VN");
-                    } else if (city.toLowerCase().includes('đà nẵng') || city.toLowerCase().includes('danang')) {
-                        fetchRealWeather(16.0544, 108.2022, "Đà Nẵng", "VN");
-                    } else if (city.toLowerCase().includes('tokyo')) {
-                        fetchRealWeather(35.6762, 139.6503, "Tokyo", "JP");
-                    } else {
-                        fetchRealWeather(37.5665, 126.9780, "Seoul", "KR");
-                    }
-                });
-            }
-
-            // Tự động đồng bộ mỗi 10 phút sang Cube nếu đang mở web
-            setInterval(() => {
-                const autoSync = document.getElementById('chkAutoSyncClock');
-                if (autoSync && autoSync.checked && (typeof isConnected !== 'undefined' && isConnected)) {
-                    const city = document.getElementById('clockCityInput')?.value || 'Seoul';
-                    const country = document.getElementById('clockCountryInput')?.value || 'KR';
-                    const temp = parseInt(document.getElementById('clockTempInput')?.value) || 14;
-                    const maxTemp = parseInt(document.getElementById('clockMaxTempInput')?.value) || 18;
-                    const humidity = parseInt(document.getElementById('clockHumidityInput')?.value) || 32;
-                    const weather = document.getElementById('clockWeatherSelect')?.value || 'Clear';
-
-                    sendCommand({
-                        cmd: "clock_sync",
-                        city: city,
-                        country: country,
-                        temp: temp,
-                        maxTemp: maxTemp,
-                        humidity: humidity,
-                        weather: weather,
-                        epoch: Math.floor(Date.now() / 1000)
-                    });
-                }
-            }, 600000);
-        }
-
-        // Gọi khởi tạo Tab đồng hồ khi trang web tải xong
-        setTimeout(initClockTab, 300);
-
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/omggif@1.0.10/omggif.js">
-        // ====================================================================
-        // TAB 4: REAL-TIME DIGITAL CLOCK & SPACE WEATHER STATION
-        // ====================================================================
-        const clockCanvas = document.getElementById('clockCanvas');
-        const clockCtx = clockCanvas ? clockCanvas.getContext('2d') : null;
-        let clockInterval = null;
-        let lastWeatherFetchTime = 0;
-
-        // Bitmap phi hành gia 64x64 cho Canvas
-        const astroSpriteImg = document.createElement('canvas');
-        astroSpriteImg.width = 64;
-        astroSpriteImg.height = 64;
-        const astroCtx = astroSpriteImg.getContext('2d');
-
-        // Khởi tạo sprite phi hành gia
-        (function initAstroSprite() {
-            astroCtx.fillStyle = '#ffffff';
-            // Vẽ đầu, mũ bảo hộ, cơ thể, ba lô
-            astroCtx.beginPath();
-            astroCtx.ellipse(32, 28, 16, 16, 0, 0, Math.PI * 2);
-            astroCtx.lineWidth = 3;
-            astroCtx.strokeStyle = '#ffffff';
-            astroCtx.stroke();
-            
-            // Kính chắn gió mũ bảo hộ
-            astroCtx.fillStyle = '#0f172a';
-            astroCtx.beginPath();
-            astroCtx.ellipse(32, 28, 11, 9, 0, 0, Math.PI * 2);
-            astroCtx.fill();
-            astroCtx.strokeStyle = '#38bdf8';
-            astroCtx.lineWidth = 1.5;
-            astroCtx.stroke();
-            // Điểm sáng kính
-            astroCtx.fillStyle = '#ffffff';
-            astroCtx.beginPath();
-            astroCtx.ellipse(36, 25, 3, 2, 0, 0, Math.PI * 2);
-            astroCtx.fill();
-
-            // Thân và balo
-            astroCtx.strokeStyle = '#ffffff';
-            astroCtx.lineWidth = 3;
-            astroCtx.beginPath();
-            astroCtx.roundRect(24, 42, 16, 16, 4);
-            astroCtx.stroke();
-            // Balo phản lực
-            astroCtx.beginPath();
-            astroCtx.roundRect(16, 40, 7, 18, 3);
-            astroCtx.stroke();
-            // Tay và chân
-            astroCtx.beginPath();
-            astroCtx.moveTo(24, 46);
-            astroCtx.lineTo(16, 52);
-            astroCtx.moveTo(40, 46);
-            astroCtx.lineTo(46, 54);
-            astroCtx.moveTo(28, 58);
-            astroCtx.lineTo(26, 62);
-            astroCtx.moveTo(36, 58);
-            astroCtx.lineTo(38, 62);
-            astroCtx.stroke();
-        })();
-
-        // Hàm vẽ số điện tử bo góc (Hours / Minutes)
-        function drawCanvasClockDigit(ctx, x, y, digit, w, h, th, color, isHollow) {
-            const segs = [0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F];
-            const m = segs[digit] || 0;
-            const halfH = Math.floor(h / 2);
-            const r = 3;
-
-            if (digit === 0 && isHollow) {
-                ctx.fillStyle = color;
-                ctx.beginPath();
-                ctx.roundRect(x, y, w, h, 6);
-                ctx.fill();
-                ctx.fillStyle = '#000000';
-                ctx.beginPath();
-                ctx.roundRect(x + th, y + th, w - 2 * th, h - 2 * th, 4);
-                ctx.fill();
-                return;
-            }
-
-            if (digit === 1) {
-                ctx.fillStyle = color;
-                ctx.beginPath();
-                ctx.roundRect(x + Math.floor(w/2 - th/2), y, th, h, 2);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.moveTo(x + Math.floor(w/2 - th/2), y);
-                ctx.lineTo(x + Math.floor(w/2 - th/2), y + 12);
-                ctx.lineTo(x + Math.floor(w/2 - th/2) - 8, y + 12);
-                ctx.fill();
-                return;
-            }
-
-            ctx.fillStyle = color;
-            function rect(rx, ry, rw, rh) {
-                ctx.beginPath();
-                ctx.roundRect(rx, ry, rw, rh, r);
-                ctx.fill();
-            }
-
-            if (m & 0x01) rect(x, y, w, th);                           // top
-            if (m & 0x02) rect(x + w - th, y, th, halfH + 1);          // top-right
-            if (m & 0x04) rect(x + w - th, y + halfH, th, halfH + 1);  // bottom-right
-            if (m & 0x08) rect(x, y + h - th, w, th);                  // bottom
-            if (m & 0x10) rect(x, y + halfH, th, halfH + 1);          // bottom-left
-            if (m & 0x20) rect(x, y, th, halfH + 1);                  // top-left
-            if (m & 0x40) rect(x, y + halfH - Math.floor(th/2), w, th);// middle
-        }
-
-        // Vẽ toàn bộ màn hình đồng hồ Canvas 240x240 theo thời gian thực
-        function renderLiveClockCanvas() {
-            if (!clockCtx) return;
-            const now = new Date();
-            let hours = now.getHours();
-            const minutes = now.getMinutes();
-            const seconds = now.getSeconds();
-            const is24H = document.getElementById('chk24HourFormat') ? document.getElementById('chk24HourFormat').checked : true;
-            if (!is24H) {
-                hours = hours % 12 || 12;
-            }
-
-            const city = (document.getElementById('clockCityInput') ? document.getElementById('clockCityInput').value : 'Seoul') || 'Seoul';
-            const country = (document.getElementById('clockCountryInput') ? document.getElementById('clockCountryInput').value : 'KR') || 'KR';
-            const temp = parseInt(document.getElementById('clockTempInput')?.value) || 14;
-            const maxTemp = parseInt(document.getElementById('clockMaxTempInput')?.value) || 18;
-            const humidity = parseInt(document.getElementById('clockHumidityInput')?.value) || 32;
-            const weather = document.getElementById('clockWeatherSelect')?.value || 'Clear';
-
-            // 0. Xóa nền đen tuyệt đối (chuẩn Hologram)
-            clockCtx.fillStyle = '#000000';
-            clockCtx.fillRect(0, 0, 240, 240);
-
-            // 1. Dòng 1: Thành phố (Vàng) & Huy hiệu Quốc gia (Xanh lá)
-            clockCtx.fillStyle = '#ffb703';
-            clockCtx.font = 'bold 18px system-ui, -apple-system, sans-serif';
-            clockCtx.textAlign = 'left';
-            clockCtx.textBaseline = 'top';
-            clockCtx.fillText(city, 12, 8);
-
-            const cityMetrics = clockCtx.measureText(city);
-            let badgeX = 12 + Math.min(cityMetrics.width + 8, 120);
-            clockCtx.fillStyle = '#70e000';
-            clockCtx.beginPath();
-            clockCtx.roundRect(badgeX, 7, 36, 18, 4);
-            clockCtx.fill();
-
-            clockCtx.fillStyle = '#000000';
-            clockCtx.font = 'bold 12px system-ui, sans-serif';
-            clockCtx.textAlign = 'center';
-            clockCtx.fillText(country, badgeX + 18, 10);
-
-            // Biểu tượng Mặt trời / Trăng
-            const realHour = now.getHours();
-            if (realHour >= 6 && realHour < 18) {
-                // Mặt trời cam đất
-                clockCtx.fillStyle = '#e07a5f';
-                clockCtx.beginPath();
-                clockCtx.arc(206, 18, 14, 0, Math.PI * 2);
-                clockCtx.fill();
-            } else {
-                // Mặt trăng khuyết
-                clockCtx.fillStyle = '#ffb703';
-                clockCtx.beginPath();
-                clockCtx.arc(206, 18, 14, 0, Math.PI * 2);
-                clockCtx.fill();
-                clockCtx.fillStyle = '#000000';
-                clockCtx.beginPath();
-                clockCtx.arc(200, 14, 12, 0, Math.PI * 2);
-                clockCtx.fill();
-            }
-
-            // 2. Dòng 2: Max temp
-            clockCtx.fillStyle = '#ffffff';
-            clockCtx.font = '13px system-ui, sans-serif';
-            clockCtx.textAlign = 'left';
-            clockCtx.fillText(`Max temp ${maxTemp}°C`, 12, 34);
-
-            // 3. Khối đồng hồ số khổng lồ (Hours: White, Minutes: Gold Outline)
-            const h1 = Math.floor(hours / 10);
-            const h2 = hours % 10;
-            const m1 = Math.floor(minutes / 10);
-            const m2 = minutes % 10;
-
-            drawCanvasClockDigit(clockCtx, 12, 58, h1, 26, 64, 7, '#ffffff', false);
-            drawCanvasClockDigit(clockCtx, 42, 58, h2, 26, 64, 7, '#ffffff', false);
-
-            // Dấu hai chấm (:)
-            clockCtx.fillStyle = '#ffffff';
-            clockCtx.fillRect(75, 74, 6, 8);
-            clockCtx.fillRect(75, 100, 6, 8);
-
-            // Minutes (Vàng cam viền rỗng)
-            drawCanvasClockDigit(clockCtx, 88, 58, m1, 26, 64, 7, '#ffb703', true);
-            drawCanvasClockDigit(clockCtx, 118, 58, m2, 26, 64, 7, '#ffb703', true);
-
-            // Huy hiệu thời tiết
-            clockCtx.fillStyle = '#ffffff';
-            clockCtx.beginPath();
-            clockCtx.roundRect(154, 56, 74, 22, 5);
-            clockCtx.fill();
-            clockCtx.fillStyle = '#14234b';
-            clockCtx.font = 'bold 13px system-ui, sans-serif';
-            clockCtx.textAlign = 'center';
-            clockCtx.fillText(weather, 191, 60);
-
-            // Số Giây (Seconds)
-            clockCtx.fillStyle = '#ffffff';
-            clockCtx.font = 'bold 28px Consolas, monospace';
-            clockCtx.textAlign = 'left';
-            const secStr = String(seconds).padStart(2, '0');
-            clockCtx.fillText(secStr, 170, 88);
-
-            // 4. Dòng 4: Ngày tháng & Thứ
-            const daysArr = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-            const dayStr = daysArr[now.getDay()];
-            const dateStr = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
-
-            clockCtx.fillStyle = '#ffffff';
-            clockCtx.font = '14px system-ui, sans-serif';
-            clockCtx.fillText(dateStr, 12, 134);
-            clockCtx.fillStyle = '#70e000';
-            clockCtx.font = 'bold 14px system-ui, sans-serif';
-            clockCtx.fillText(dayStr, 118, 134);
-
-            // 5. Cột trái dưới: Thanh đo Nhiệt độ & Độ ẩm
-            // 5.1 Nhiệt độ
-            clockCtx.fillStyle = '#ef4444';
-            clockCtx.beginPath();
-            clockCtx.arc(17, 172, 5, 0, Math.PI * 2);
-            clockCtx.fill();
-            clockCtx.fillStyle = '#ffffff';
-            clockCtx.fillRect(15, 160, 4, 10);
-
-            // Thanh đo nhiệt độ
-            clockCtx.strokeStyle = '#475569';
-            clockCtx.lineWidth = 1.5;
-            clockCtx.beginPath();
-            clockCtx.roundRect(30, 165, 54, 10, 4);
-            clockCtx.stroke();
-            const tempFillW = Math.max(3, Math.min(50, Math.round((Math.max(0, temp) / 45) * 50)));
-            clockCtx.fillStyle = '#0082ff';
-            clockCtx.beginPath();
-            clockCtx.roundRect(32, 167, tempFillW, 6, 2);
-            clockCtx.fill();
-            clockCtx.fillStyle = '#ffffff';
-            clockCtx.font = 'bold 13px system-ui, sans-serif';
-            clockCtx.fillText(`${temp}°C`, 90, 163);
-
-            // 5.2 Độ ẩm
-            clockCtx.fillStyle = '#0082ff';
-            clockCtx.beginPath();
-            clockCtx.arc(17, 199, 4.5, 0, Math.PI * 2);
-            clockCtx.fill();
-            clockCtx.beginPath();
-            clockCtx.moveTo(17, 191);
-            clockCtx.lineTo(13, 198);
-            clockCtx.lineTo(21, 198);
-            clockCtx.fill();
-
-            // Thanh đo độ ẩm
-            clockCtx.strokeStyle = '#475569';
-            clockCtx.beginPath();
-            clockCtx.roundRect(30, 195, 54, 10, 4);
-            clockCtx.stroke();
-            const humFillW = Math.max(3, Math.min(50, Math.round((Math.max(0, Math.min(100, humidity)) / 100) * 50)));
-            clockCtx.fillStyle = '#ffdc32';
-            clockCtx.beginPath();
-            clockCtx.roundRect(32, 197, humFillW, 6, 2);
-            clockCtx.fill();
-            clockCtx.fillStyle = '#ffffff';
-            clockCtx.font = 'bold 13px system-ui, sans-serif';
-            clockCtx.fillText(`${humidity}%`, 90, 193);
-
-            // 6. Cột phải dưới: Phi hành gia nhấp nhô & Sao lấp lánh
-            const astroBob = Math.sin(Date.now() / 500) * 2;
-            clockCtx.drawImage(astroSpriteImg, 160, 155 + astroBob);
-
-            // Sao lấp lánh xung quanh phi hành gia
-            const starPhase = Math.floor(Date.now() / 400) % 4;
-            const stars = [
-                { x: 152, y: 165 },
-                { x: 230, y: 160 },
-                { x: 154, y: 222 },
-                { x: 226, y: 228 }
-            ];
-            stars.forEach((s, idx) => {
-                clockCtx.fillStyle = (idx === starPhase) ? '#00f2fe' : (idx === (starPhase + 2) % 4 ? '#ffffff' : 'rgba(255,255,255,0.2)');
-                clockCtx.fillRect(s.x, s.y, 2, 2);
-            });
-        }
-
-        // Lấy thời tiết thực tế từ Open-Meteo API
-        async function fetchRealWeather(lat, lon, cityName, countryCode) {
-            const badge = document.getElementById('weatherStatusBadge');
-            try {
-                if (badge) { badge.textContent = 'Đang tải thời tiết...'; badge.style.color = 'var(--accent)'; }
-                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code&daily=temperature_2m_max&timezone=auto`;
-                const res = await fetch(url);
-                const data = await res.json();
-                if (data && data.current) {
-                    const curTemp = Math.round(data.current.temperature_2m);
-                    const curHum = Math.round(data.current.relative_humidity_2m);
-                    const maxTemp = (data.daily && data.daily.temperature_2m_max && data.daily.temperature_2m_max[0] !== undefined)
-                        ? Math.round(data.daily.temperature_2m_max[0])
-                        : (curTemp + 4);
-                    const wCode = data.current.weather_code;
-                    let wText = "Clear";
-                    if (wCode >= 1 && wCode <= 3) wText = "Clouds";
-                    else if (wCode >= 45 && wCode <= 48) wText = "Fog";
-                    else if (wCode >= 51 && wCode <= 67) wText = "Rain";
-                    else if (wCode >= 71 && wCode <= 77) wText = "Snow";
-                    else if (wCode >= 80 && wCode <= 82) wText = "Showers";
-                    else if (wCode >= 95) wText = "Thunder";
-
-                    if (document.getElementById('clockTempInput')) document.getElementById('clockTempInput').value = curTemp;
-                    if (document.getElementById('clockMaxTempInput')) document.getElementById('clockMaxTempInput').value = maxTemp;
-                    if (document.getElementById('clockHumidityInput')) document.getElementById('clockHumidityInput').value = curHum;
-                    if (document.getElementById('clockWeatherSelect')) document.getElementById('clockWeatherSelect').value = wText;
-                    if (cityName && document.getElementById('clockCityInput')) document.getElementById('clockCityInput').value = cityName;
-                    if (countryCode && document.getElementById('clockCountryInput')) document.getElementById('clockCountryInput').value = countryCode;
-
-                    if (badge) { badge.textContent = `● Đã cập nhật (${curTemp}°C, ${wText})`; badge.style.color = 'var(--neon-green)'; }
-                    log(`Thời tiết ${cityName || 'Seoul'}: ${curTemp}°C, Độ ẩm ${curHum}%, Max ${maxTemp}°C, ${wText}`);
-                    lastWeatherFetchTime = Date.now();
-                }
-            } catch (err) {
-                console.warn('Weather fetch error:', err);
-                if (badge) { badge.textContent = '● Ngoại tuyến (Dùng số mặc định)'; badge.style.color = '#eab308'; }
-            }
-        }
-
-        // Khởi động Tab 4 & Sự kiện tương tác
-        function initClockTab() {
-            // Chạy vòng lặp render đồng hồ thời gian thực
-            if (clockInterval) clearInterval(clockInterval);
-            clockInterval = setInterval(renderLiveClockCanvas, 500);
-            renderLiveClockCanvas();
-
-            // Nút Chiếu Đồng Hồ Lên Cube
-            const btnPlayClock = document.getElementById('btnPlayClockOnCube');
-            if (btnPlayClock) {
-                btnPlayClock.addEventListener('click', () => {
-                    const city = document.getElementById('clockCityInput')?.value || 'Seoul';
-                    const country = document.getElementById('clockCountryInput')?.value || 'KR';
-                    const temp = parseInt(document.getElementById('clockTempInput')?.value) || 14;
-                    const maxTemp = parseInt(document.getElementById('clockMaxTempInput')?.value) || 18;
-                    const humidity = parseInt(document.getElementById('clockHumidityInput')?.value) || 32;
-                    const weather = document.getElementById('clockWeatherSelect')?.value || 'Clear';
-
-                    sendCommand({
-                        cmd: "clock",
-                        city: city,
-                        country: country,
-                        temp: temp,
-                        maxTemp: maxTemp,
-                        humidity: humidity,
-                        weather: weather,
-                        epoch: Math.floor(Date.now() / 1000),
-                        tz: -(new Date().getTimezoneOffset() / 60)
-                    });
-                    log(`Đã gửi lệnh chiếu Đồng Hồ Thời Gian Thực (${city}, ${temp}°C) lên Cube!`);
-                });
-            }
-
-            // Nút Đồng bộ thời gian & thời tiết
-            const btnSync = document.getElementById('btnSyncClockNow');
-            if (btnSync) {
-                btnSync.addEventListener('click', () => {
-                    const city = document.getElementById('clockCityInput')?.value || 'Seoul';
-                    const country = document.getElementById('clockCountryInput')?.value || 'KR';
-                    const temp = parseInt(document.getElementById('clockTempInput')?.value) || 14;
-                    const maxTemp = parseInt(document.getElementById('clockMaxTempInput')?.value) || 18;
-                    const humidity = parseInt(document.getElementById('clockHumidityInput')?.value) || 32;
-                    const weather = document.getElementById('clockWeatherSelect')?.value || 'Clear';
-
-                    sendCommand({
-                        cmd: "clock_sync",
-                        city: city,
-                        country: country,
-                        temp: temp,
-                        maxTemp: maxTemp,
-                        humidity: humidity,
-                        weather: weather,
-                        epoch: Math.floor(Date.now() / 1000)
-                    });
-                    log(`Đã đồng bộ giờ thiết bị & thời tiết sang Cube!`);
-                });
-            }
-
-            // Các nút chọn nhanh thành phố
-            document.querySelectorAll('.btn-city').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const city = btn.dataset.city;
-                    const country = btn.dataset.country;
-                    const lat = parseFloat(btn.dataset.lat);
-                    const lon = parseFloat(btn.dataset.lon);
-                    document.getElementById('clockCityInput').value = city;
-                    document.getElementById('clockCountryInput').value = country;
-                    fetchRealWeather(lat, lon, city, country);
-                });
-            });
-
-            // Nút lấy vị trí hiện tại (GPS / Geolocation)
-            const btnGeo = document.getElementById('btnAutoGeoLocation');
-            if (btnGeo) {
-                btnGeo.addEventListener('click', () => {
-                    if (navigator.geolocation) {
-                        navigator.geolocation.getCurrentPosition(
-                            pos => {
-                                fetchRealWeather(pos.coords.latitude, pos.coords.longitude, "Vị trí của bạn", "VN");
-                            },
-                            err => {
-                                log("Không thể lấy GPS, đang dùng vị trí mặc định TP.HCM");
-                                fetchRealWeather(10.8231, 106.6297, "TP.HCM", "VN");
-                            }
-                        );
-                    } else {
-                        fetchRealWeather(10.8231, 106.6297, "TP.HCM", "VN");
-                    }
-                });
-            }
-
-            // Nút Refresh thời tiết
-            const btnRefresh = document.getElementById('btnRefreshWeather');
-            if (btnRefresh) {
-                btnRefresh.addEventListener('click', () => {
-                    const city = document.getElementById('clockCityInput')?.value || 'Seoul';
-                    if (city.toLowerCase().includes('hcm') || city.toLowerCase().includes('hồ chí minh')) {
-                        fetchRealWeather(10.8231, 106.6297, "TP.HCM", "VN");
-                    } else if (city.toLowerCase().includes('hà nội') || city.toLowerCase().includes('hanoi')) {
-                        fetchRealWeather(21.0285, 105.8542, "Hà Nội", "VN");
-                    } else if (city.toLowerCase().includes('đà nẵng') || city.toLowerCase().includes('danang')) {
-                        fetchRealWeather(16.0544, 108.2022, "Đà Nẵng", "VN");
-                    } else if (city.toLowerCase().includes('tokyo')) {
-                        fetchRealWeather(35.6762, 139.6503, "Tokyo", "JP");
-                    } else {
-                        fetchRealWeather(37.5665, 126.9780, "Seoul", "KR");
-                    }
-                });
-            }
-
-            // Tự động đồng bộ mỗi 10 phút sang Cube nếu đang mở web
-            setInterval(() => {
-                const autoSync = document.getElementById('chkAutoSyncClock');
-                if (autoSync && autoSync.checked && (typeof isConnected !== 'undefined' && isConnected)) {
-                    const city = document.getElementById('clockCityInput')?.value || 'Seoul';
-                    const country = document.getElementById('clockCountryInput')?.value || 'KR';
-                    const temp = parseInt(document.getElementById('clockTempInput')?.value) || 14;
-                    const maxTemp = parseInt(document.getElementById('clockMaxTempInput')?.value) || 18;
-                    const humidity = parseInt(document.getElementById('clockHumidityInput')?.value) || 32;
-                    const weather = document.getElementById('clockWeatherSelect')?.value || 'Clear';
-
-                    sendCommand({
-                        cmd: "clock_sync",
-                        city: city,
-                        country: country,
-                        temp: temp,
-                        maxTemp: maxTemp,
-                        humidity: humidity,
-                        weather: weather,
-                        epoch: Math.floor(Date.now() / 1000)
-                    });
-                }
-            }, 600000);
-        }
-
-        // Gọi khởi tạo Tab đồng hồ khi trang web tải xong
-        setTimeout(initClockTab, 300);
-
-    </script>
+    <script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/omggif@1.0.10/omggif.js"></script>
 </head>
 
 <body>
@@ -1815,8 +875,7 @@
             <span style="font-size: 1.5rem;">✨</span>
             <div>
                 <h1>Cube <span>3D Studio</span></h1>
-                <p style="font-size: 0.75rem; color: var(--text-dim);">TFT 1.54" 240x240 ST7789 • ESP32-S3 &amp; MicroSD
-                </p>
+                <p style="font-size: 0.75rem; color: var(--text-dim);">TFT 1.54" 240×240 ST7789 • ESP32-S3 &amp; MicroSD <span id="hwTempBadge" style="color: var(--neon-green); font-weight: 600; margin-left: 6px;"></span></p>
             </div>
         </div>
 
@@ -1969,8 +1028,29 @@
                 <input type="file" id="fileInput" accept="image/*,.gif" style="display: none;">
                 <div style="font-size: 2rem; margin-bottom: 6px;">📂</div>
                 <strong style="color: var(--accent);">Bấm vào đây để chọn ảnh (hoặc kéo thả ảnh vào)</strong>
-                <p style="font-size: 0.8rem; color: var(--text-dim); margin-top: 4px;">Hỗ trợ PNG, JPG, GIF, WebP. Khung
-                    cắt khóa cứng tỉ lệ 240:320 để không méo ảnh.</p>
+                <p style="font-size: 0.8rem; color: var(--text-dim); margin-top: 4px;">Hỗ trợ PNG, JPG, GIF, WebP. <b>Ảnh PNG tự động chuyển phông nền sang Đen (#000000)</b> chuẩn Hologram 240×240!</p>
+            </div>
+
+            
+            <!-- Bộ lọc tự động đổi phông nền PNG sang Đen chuẩn Hologram -->
+            <div id="pngBgControlCard" style="display: none; background: var(--bg-card); padding: 12px 14px; border-radius: 8px; border: 1px solid rgba(0, 242, 254, 0.35); flex-direction: column; gap: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.86rem; font-weight: 700; color: var(--accent);">
+                        <input type="checkbox" id="chkAutoBlackPng" checked style="accent-color: var(--accent); width: 18px; height: 18px;">
+                        <span>🖤 Tự động đổi phông nền PNG sang Đen (#000000)</span>
+                    </label>
+                    <span id="pngBgStatusBadge" style="font-size: 0.74rem; color: var(--neon-green); font-weight: 600;">● Đã khử nền đen chuẩn Hologram</span>
+                </div>
+                <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px; font-size: 0.78rem; color: var(--text-dim);">
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                        <input type="checkbox" id="chkEdgeFloodKey" checked style="accent-color: var(--accent);">
+                        <span>Tách luôn cả nền Trắng / Ca-rô / Đơn sắc bao quanh mép ảnh</span>
+                    </label>
+                    <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 180px;">
+                        <span>Độ nhạy viền (<strong id="pngTolVal" style="color: var(--accent);">34</strong>):</span>
+                        <input type="range" id="pngBgTolerance" min="10" max="90" value="34" style="flex: 1; accent-color: var(--accent);">
+                    </div>
+                </div>
             </div>
 
             <div class="crop-workspace" id="cropWorkspace" style="display: none;">
@@ -2145,6 +1225,88 @@
                 </div>
             </div>
 
+            
+            <!-- PHÁT VIDEO MP4 TỪ THẺ NHỚ MICRO SD (MJPEG FULL COLOR) -->
+            <div style="background: linear-gradient(145deg, rgba(21,29,48,0.98), rgba(12,22,40,0.98)); padding: 14px; border-radius: 10px; border: 1px solid rgba(0, 255, 136, 0.4); display: flex; flex-direction: column; gap: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+                    <div>
+                        <strong style="color: var(--neon-green); font-size: 0.96rem;">🎥 Phát Video MP4 trên Thẻ Nhớ MicroSD (Full-Color 65K Màu)</strong>
+                        <div style="font-size: 0.75rem; color: var(--text-dim);">Tự động cắt vuông 240×240 &amp; nén chuẩn <code>video.mjpg</code> tăng tốc phần cứng SIMD ESP32-S3</div>
+                    </div>
+                    <span id="sdVideoBadge" style="font-size: 0.74rem; background: rgba(0,255,136,0.12); color: var(--neon-green); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(0,255,136,0.3);">MicroSD Ready</span>
+                </div>
+
+                <div class="upload-dropzone" id="videoDropzone" style="padding: 16px; border: 2px dashed var(--neon-green); border-radius: 8px; text-align: center; cursor: pointer;">
+                    <input type="file" id="videoFileInput" accept="video/*,.mp4,.webm,.mov,.mjpg,.mjpeg" style="display: none;">
+                    <div style="font-size: 1.8rem; margin-bottom: 4px;">🎞️</div>
+                    <strong style="color: var(--neon-green); font-size: 0.88rem;">Bấm chọn Video (.MP4, .MOV, .WebM) hoặc file .mjpg</strong>
+                    <p style="font-size: 0.74rem; color: var(--text-dim); margin-top: 4px;">Có thể bắn trực tiếp qua Wi-Fi vào thẻ nhớ hoặc tải file <code>video.mjpg</code> về chép vào thẻ nhớ (hỗ trợ video dài hàng chục phút!)</p>
+                </div>
+
+                <div id="videoConfigPanel" style="display: none; flex-direction: column; gap: 10px; background: var(--bg-secondary); padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
+                    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                        <canvas id="videoPreviewCanvas" width="240" height="240" style="width: 96px; height: 96px; background: #000; border: 2px solid var(--neon-green); border-radius: 8px;"></canvas>
+                        <div style="flex: 1; min-width: 190px; display: flex; flex-direction: column; gap: 6px;">
+                            <div id="videoFileInfo" style="font-size: 0.82rem; font-weight: 700; color: #fff;">video.mp4</div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                <div>
+                                    <label style="font-size: 0.72rem; color: var(--text-dim);">Tốc độ xuất:</label>
+                                    <select id="videoFpsSelect" style="width: 100%; background: var(--bg-card); color: var(--accent); border: 1px solid var(--border); padding: 5px; border-radius: 6px; font-size: 0.78rem;">
+                                        <option value="15">15 FPS (Siêu nhẹ)</option>
+                                        <option value="20" selected>20 FPS (Chuẩn mượt)</option>
+                                        <option value="24">24 FPS (Điện ảnh)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.72rem; color: var(--text-dim);">Thời lượng lấy:</label>
+                                    <select id="videoMaxSecSelect" style="width: 100%; background: var(--bg-card); color: var(--accent); border: 1px solid var(--border); padding: 5px; border-radius: 6px; font-size: 0.78rem;">
+                                        <option value="15" selected>15 giây (Nhanh Wi-Fi)</option>
+                                        <option value="30">30 giây</option>
+                                        <option value="60">60 giây</option>
+                                        <option value="0">Toàn bộ Video (Chép thẻ SD)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modern-loading-card" id="videoProgressCard">
+                        <div class="loading-header-row">
+                            <div class="loading-title-group">
+                                <span class="pulse-icon">🎥</span>
+                                <span id="videoProgressTitle">Đang chuyển đổi Video 240×240...</span>
+                            </div>
+                            <span class="loading-pct-badge" id="videoProgressPct">0%</span>
+                        </div>
+                        <div class="loading-track-bar">
+                            <div class="loading-fill-bar" id="videoProgressFill"></div>
+                        </div>
+                        <div class="loading-detail-row">
+                            <span id="videoProgressStatus">Đang trích xuất khung hình...</span>
+                            <span>MJPEG • 65K Colors</span>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                        <button type="button" id="btnConvertUploadVideo" class="btn" style="flex: 1; min-width: 190px; background: var(--neon-green); color: #000; font-weight: 700; font-size: 0.84rem;">
+                            🚀 Nạp Wi-Fi vào Thẻ nhớ &amp; Chiếu ngay
+                        </button>
+                        <button type="button" id="btnConvertDownloadVideo" class="btn btn-secondary" style="flex: 1; min-width: 190px; font-size: 0.82rem;">
+                            💾 Tải file video.mjpg (Chép vào Thẻ SD)
+                        </button>
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                    <button type="button" id="btnPlaySdVideo" class="btn" style="flex: 1; background: #10b981; color: #000; font-weight: 700; font-size: 0.84rem;">
+                        ▶️ Phát Video trên Thẻ nhớ (/video.mjpg)
+                    </button>
+                    <button type="button" id="btnDeleteSdVideo" class="btn btn-danger" style="padding: 8px 14px; font-size: 0.82rem;">
+                        🗑️ Xóa Video
+                    </button>
+                </div>
+            </div>
+
             <!-- Các nút phát GIF -->
             <div style="display: flex; flex-direction: column; gap: 8px;">
                 <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">👾 Danh sách Hoạt ảnh GIF:
@@ -2259,7 +1421,7 @@
             </div>
         </div>
     </div>
-        <!-- TAB 4: REAL-TIME DIGITAL CLOCK & WEATHER STATION -->
+    <!-- TAB 4: REAL-TIME DIGITAL CLOCK & WEATHER STATION -->
     <div id="clockTab" class="main-container" style="display: none;">
         <div class="crop-workspace card" style="width: 100%;">
             <!-- Left: Live Clock Preview Screen -->
@@ -2270,8 +1432,10 @@
                         <span style="color: var(--neon-green); font-weight: bold;">LIVE REAL-TIME</span>
                         <span class="hud-ratio">HOLOGRAM</span>
                     </div>
-                    <div class="canvas-wrapper" style="max-width: 280px; aspect-ratio: 1/1; position: relative; background: #000; border: 4px solid var(--accent); border-radius: 12px; box-shadow: 0 0 25px rgba(0, 242, 254, 0.35);">
-                        <canvas id="clockCanvas" width="240" height="240" style="display: block; width: 100%; height: 100%; image-rendering: pixelated;"></canvas>
+                    <div class="canvas-wrapper"
+                        style="max-width: 280px; aspect-ratio: 1/1; position: relative; background: #000; border: 4px solid var(--accent); border-radius: 12px; box-shadow: 0 0 25px rgba(0, 242, 254, 0.35);">
+                        <canvas id="clockCanvas" width="240" height="240"
+                            style="display: block; width: 100%; height: 100%; image-rendering: pixelated;"></canvas>
                     </div>
                     <div class="canvas-hud-footer" style="max-width: 280px;">
                         <span>Trạm Không Gian &amp; Thời Tiết</span>
@@ -2279,11 +1443,14 @@
                     </div>
                 </div>
 
-                <div style="width: 100%; max-width: 280px; display: flex; flex-direction: column; gap: 8px; margin-top: 4px;">
-                    <button id="btnPlayClockOnCube" class="btn" style="width: 100%; min-height: 46px; font-size: 0.95rem; font-weight: bold; background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); color: #000; box-shadow: 0 0 16px rgba(0, 242, 254, 0.45);">
+                <div
+                    style="width: 100%; max-width: 280px; display: flex; flex-direction: column; gap: 8px; margin-top: 4px;">
+                    <button id="btnPlayClockOnCube" class="btn"
+                        style="width: 100%; min-height: 46px; font-size: 0.95rem; font-weight: bold; background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); color: #000; box-shadow: 0 0 16px rgba(0, 242, 254, 0.45);">
                         🚀 Chiếu Đồng Hồ Lên Cube
                     </button>
-                    <button id="btnSyncClockNow" class="btn btn-secondary" style="width: 100%; min-height: 38px; font-size: 0.82rem;">
+                    <button id="btnSyncClockNow" class="btn btn-secondary"
+                        style="width: 100%; min-height: 38px; font-size: 0.82rem;">
                         🔄 Đồng bộ Giờ &amp; Thời tiết sang Cube
                     </button>
                 </div>
@@ -2292,66 +1459,91 @@
             <!-- Right: Settings & Real-time Weather -->
             <div style="flex: 1; min-width: 280px; display: flex; flex-direction: column; gap: 12px;">
                 <!-- Vị trí & Thành phố nhanh -->
-                <div style="background: var(--bg-card); padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px;">
+                <div
+                    style="background: var(--bg-card); padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <strong style="font-size: 0.88rem; color: var(--accent);">🏙️ Chọn Vị Trí &amp; Thời Tiết:</strong>
-                        <span id="weatherStatusBadge" style="font-size: 0.72rem; color: var(--neon-green);">● Sẵn sàng</span>
+                        <strong style="font-size: 0.88rem; color: var(--accent);">🏙️ Chọn Vị Trí &amp; Thời
+                            Tiết:</strong>
+                        <span id="weatherStatusBadge" style="font-size: 0.72rem; color: var(--neon-green);">● Sẵn
+                            sàng</span>
                     </div>
 
                     <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-                        <button type="button" class="btn btn-secondary btn-city" data-city="Seoul" data-country="KR" data-lat="37.5665" data-lon="126.9780" style="padding: 6px 10px; font-size: 0.78rem;">🇰🇷 Seoul</button>
-                        <button type="button" class="btn btn-secondary btn-city" data-city="TP.HCM" data-country="VN" data-lat="10.8231" data-lon="106.6297" style="padding: 6px 10px; font-size: 0.78rem;">🇻🇳 TP.HCM</button>
-                        <button type="button" class="btn btn-secondary btn-city" data-city="Hà Nội" data-country="VN" data-lat="21.0285" data-lon="105.8542" style="padding: 6px 10px; font-size: 0.78rem;">🇻🇳 Hà Nội</button>
-                        <button type="button" class="btn btn-secondary btn-city" data-city="Đà Nẵng" data-country="VN" data-lat="16.0544" data-lon="108.2022" style="padding: 6px 10px; font-size: 0.78rem;">🇻🇳 Đà Nẵng</button>
-                        <button type="button" class="btn btn-secondary btn-city" data-city="Tokyo" data-country="JP" data-lat="35.6762" data-lon="139.6503" style="padding: 6px 10px; font-size: 0.78rem;">🇯🇵 Tokyo</button>
-                        <button type="button" class="btn btn-secondary" id="btnAutoGeoLocation" style="padding: 6px 10px; font-size: 0.78rem; background: rgba(0, 242, 254, 0.15); color: var(--accent); border-color: var(--accent);">📍 Vị trí hiện tại (GPS)</button>
+                        <button type="button" class="btn btn-secondary btn-city" data-city="Seoul" data-country="KR"
+                            data-lat="37.5665" data-lon="126.9780" style="padding: 6px 10px; font-size: 0.78rem;">🇰🇷
+                            Seoul</button>
+                        <button type="button" class="btn btn-secondary btn-city" data-city="TP.HCM" data-country="VN"
+                            data-lat="10.8231" data-lon="106.6297" style="padding: 6px 10px; font-size: 0.78rem;">🇻🇳
+                            TP.HCM</button>
+                        <button type="button" class="btn btn-secondary btn-city" data-city="Hà Nội" data-country="VN"
+                            data-lat="21.0285" data-lon="105.8542" style="padding: 6px 10px; font-size: 0.78rem;">🇻🇳
+                            Hà Nội</button>
+                        <button type="button" class="btn btn-secondary btn-city" data-city="Đà Nẵng" data-country="VN"
+                            data-lat="16.0544" data-lon="108.2022" style="padding: 6px 10px; font-size: 0.78rem;">🇻🇳
+                            Đà Nẵng</button>
+                        <button type="button" class="btn btn-secondary btn-city" data-city="Tokyo" data-country="JP"
+                            data-lat="35.6762" data-lon="139.6503" style="padding: 6px 10px; font-size: 0.78rem;">🇯🇵
+                            Tokyo</button>
+                        <button type="button" class="btn btn-secondary" id="btnAutoGeoLocation"
+                            style="padding: 6px 10px; font-size: 0.78rem; background: rgba(0, 242, 254, 0.15); color: var(--accent); border-color: var(--accent);">📍
+                            Vị trí hiện tại (GPS)</button>
                     </div>
 
                     <!-- Ô nhập tùy chỉnh -->
                     <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 8px; margin-top: 4px;">
                         <div>
                             <label style="font-size: 0.75rem; color: var(--text-dim);">Tên thành phố:</label>
-                            <input type="text" id="clockCityInput" class="ws-input" value="Seoul" style="width: 100%; box-sizing: border-box; padding: 6px 8px; font-size: 0.85rem;">
+                            <input type="text" id="clockCityInput" class="ws-input" value="Seoul"
+                                style="width: 100%; box-sizing: border-box; padding: 6px 8px; font-size: 0.85rem;">
                         </div>
                         <div>
                             <label style="font-size: 0.75rem; color: var(--text-dim);">Quốc gia:</label>
-                            <input type="text" id="clockCountryInput" class="ws-input" value="KR" maxlength="4" style="width: 100%; box-sizing: border-box; padding: 6px 8px; font-size: 0.85rem;">
+                            <input type="text" id="clockCountryInput" class="ws-input" value="KR" maxlength="4"
+                                style="width: 100%; box-sizing: border-box; padding: 6px 8px; font-size: 0.85rem;">
                         </div>
                     </div>
                 </div>
 
                 <!-- Dữ liệu thời tiết trực tiếp -->
-                <div style="background: var(--bg-card); padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px;">
+                <div
+                    style="background: var(--bg-card); padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <strong style="font-size: 0.88rem; color: var(--text-main);">🌡️ Thông Số Thời Tiết (Tự động cập nhật):</strong>
-                        <button id="btnRefreshWeather" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.75rem;">⚡ Lấy lại thời tiết</button>
+                        <strong style="font-size: 0.88rem; color: var(--text-main);">🌡️ Thông Số Thời Tiết (Tự động cập
+                            nhật):</strong>
+                        <button id="btnRefreshWeather" class="btn btn-secondary"
+                            style="padding: 4px 10px; font-size: 0.75rem;">⚡ Lấy lại thời tiết</button>
                     </div>
 
                     <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
                         <div>
                             <label style="font-size: 0.75rem; color: var(--text-dim);">Nhiệt độ hiện tại:</label>
                             <div style="display: flex; align-items: center; gap: 4px;">
-                                <input type="number" id="clockTempInput" class="ws-input" value="14" style="width: 100%; box-sizing: border-box; padding: 6px 8px; font-size: 0.85rem;">
+                                <input type="number" id="clockTempInput" class="ws-input" value="14"
+                                    style="width: 100%; box-sizing: border-box; padding: 6px 8px; font-size: 0.85rem;">
                                 <span style="font-size: 0.85rem; color: var(--text-dim);">°C</span>
                             </div>
                         </div>
                         <div>
                             <label style="font-size: 0.75rem; color: var(--text-dim);">Nhiệt độ cao nhất (Max):</label>
                             <div style="display: flex; align-items: center; gap: 4px;">
-                                <input type="number" id="clockMaxTempInput" class="ws-input" value="18" style="width: 100%; box-sizing: border-box; padding: 6px 8px; font-size: 0.85rem;">
+                                <input type="number" id="clockMaxTempInput" class="ws-input" value="18"
+                                    style="width: 100%; box-sizing: border-box; padding: 6px 8px; font-size: 0.85rem;">
                                 <span style="font-size: 0.85rem; color: var(--text-dim);">°C</span>
                             </div>
                         </div>
                         <div>
                             <label style="font-size: 0.75rem; color: var(--text-dim);">Độ ẩm không khí:</label>
                             <div style="display: flex; align-items: center; gap: 4px;">
-                                <input type="number" id="clockHumidityInput" class="ws-input" value="32" min="0" max="100" style="width: 100%; box-sizing: border-box; padding: 6px 8px; font-size: 0.85rem;">
+                                <input type="number" id="clockHumidityInput" class="ws-input" value="32" min="0"
+                                    max="100"
+                                    style="width: 100%; box-sizing: border-box; padding: 6px 8px; font-size: 0.85rem;">
                                 <span style="font-size: 0.85rem; color: var(--text-dim);">%</span>
                             </div>
                         </div>
                         <div>
                             <label style="font-size: 0.75rem; color: var(--text-dim);">Trạng thái trời:</label>
-                            <select id="clockWeatherSelect" style="background: var(--bg-secondary); color: var(--accent); border: 1px solid var(--border); padding: 7px 8px; border-radius: 6px; font-size: 0.82rem; width: 100%; box-sizing: border-box; outline: none;">
+                            <select id="clockWeatherSelect"
+                                style="background: var(--bg-secondary); color: var(--accent); border: 1px solid var(--border); padding: 7px 8px; border-radius: 6px; font-size: 0.82rem; width: 100%; box-sizing: border-box; outline: none;">
                                 <option value="Clear" selected>☀️ Clear (Trời quang)</option>
                                 <option value="Clouds">☁️ Clouds (Nhiều mây)</option>
                                 <option value="Rain">🌧️ Rain (Có mưa)</option>
@@ -2365,24 +1557,34 @@
                 </div>
 
                 <!-- Tùy chọn đồng bộ tự động -->
-                <div style="background: var(--bg-card); padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px;">
-                    <label style="font-size: 0.82rem; color: var(--text-main); display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                        <input type="checkbox" id="chkAutoSyncClock" checked style="accent-color: var(--accent); width: 18px; height: 18px;">
+                <div
+                    style="background: var(--bg-card); padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px;">
+                    <label
+                        style="font-size: 0.82rem; color: var(--text-main); display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="chkAutoSyncClock" checked
+                            style="accent-color: var(--accent); width: 18px; height: 18px;">
                         <span>⏱️ Tự động đồng bộ giờ thiết bị &amp; thời tiết sang Cube mỗi 10 phút</span>
                     </label>
-                    <label style="font-size: 0.82rem; color: var(--text-main); display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                        <input type="checkbox" id="chk24HourFormat" checked style="accent-color: var(--accent); width: 18px; height: 18px;">
+                    <label
+                        style="font-size: 0.82rem; color: var(--text-main); display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="chk24HourFormat" checked
+                            style="accent-color: var(--accent); width: 18px; height: 18px;">
                         <span>🕒 Định dạng 24 Giờ (24-Hour Format)</span>
                     </label>
                 </div>
 
                 <!-- Accordion Hướng dẫn 4G (Bảo tồn hướng dẫn) -->
-                <details style="background: var(--bg-card); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); cursor: pointer;">
-                    <summary style="font-size: 0.82rem; font-weight: 600; color: var(--accent);">🌐 Hướng dẫn điều khiển từ xa qua 4G (HiveMQ)</summary>
-                    <div style="font-size: 0.8rem; color: var(--text-dim); margin-top: 8px; line-height: 1.6; display: flex; flex-direction: column; gap: 6px;">
+                <details
+                    style="background: var(--bg-card); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); cursor: pointer;">
+                    <summary style="font-size: 0.82rem; font-weight: 600; color: var(--accent);">🌐 Hướng dẫn điều khiển
+                        từ xa qua 4G (HiveMQ)</summary>
+                    <div
+                        style="font-size: 0.8rem; color: var(--text-dim); margin-top: 8px; line-height: 1.6; display: flex; flex-direction: column; gap: 6px;">
                         <p>1. Cắm nguồn Cube ở nhà, Cube tự động kết nối Wi-Fi và Cloud MQTT.</p>
-                        <p>2. Mở Web trên điện thoại dùng 4G, ở thanh kết nối trên cùng chọn <b>Cloud 4G (HiveMQ)</b>.</p>
-                        <p>3. Nhập mã thiết bị (Ví dụ: <code>HOLO-B1D8</code>) và bấm <b>Kết nối</b> để vẽ, đổi ảnh hoặc chuyển đồng hồ từ xa!</p>
+                        <p>2. Mở Web trên điện thoại dùng 4G, ở thanh kết nối trên cùng chọn <b>Cloud 4G (HiveMQ)</b>.
+                        </p>
+                        <p>3. Nhập mã thiết bị (Ví dụ: <code>HOLO-FD9C</code>) và bấm <b>Kết nối</b> để vẽ, đổi ảnh hoặc
+                            chuyển đồng hồ từ xa!</p>
                     </div>
                 </details>
             </div>
@@ -2993,8 +2195,8 @@
 
         function updateInputPlaceholder() {
             if (currentConnType === 'cloud') {
-                connInput.placeholder = "Mã thiết bị Cube (VD: HOLO-B1D8)";
-                connInput.value = localStorage.getItem('hologram_device_id') || 'HOLO-B1D8';
+                connInput.placeholder = "Mã thiết bị Cube (VD: HOLO-FD9C)";
+                connInput.value = localStorage.getItem('hologram_device_id') || 'HOLO-FD9C';
             } else {
                 connInput.placeholder = "ws://192.168.x.x:81";
                 if (localStorage.getItem('hologram_ws_url')) {
@@ -3008,7 +2210,7 @@
         }
 
         function getDeviceId() {
-            return (connInput.value.trim().toUpperCase()) || 'HOLO-B1D8';
+            return (connInput.value.trim().toUpperCase()) || 'HOLO-FD9C';
         }
 
         function isConnected() {
@@ -3620,6 +2822,8 @@
 
             cropSourceCanvas.width = drawW;
             cropSourceCanvas.height = drawH;
+            sourceCtx.fillStyle = '#000000';
+            sourceCtx.fillRect(0, 0, drawW, drawH);
             sourceCtx.drawImage(loadedImage, 0, 0, drawW, drawH);
 
             let side = Math.min(drawW, drawH) * 0.85;
@@ -3862,14 +3066,201 @@
             }
         }
 
+        let rawUploadedImg = null;
+        let rawUploadedIsPng = false;
+
+        // Xử lý tự động đổi phông nền PNG (kênh trong suốt Alpha + nền đơn sắc/trắng/ca-rô ở viền) sang Đen (#000000)
+        function buildBlackBgCanvas(img, applyBlackFilter, applyEdgeKey, tol) {
+            const w = img.naturalWidth || img.width;
+            const h = img.naturalHeight || img.height;
+            const outCanvas = document.createElement('canvas');
+            outCanvas.width = w;
+            outCanvas.height = h;
+            const octx = outCanvas.getContext('2d', { willReadFrequently: true });
+
+            if (!applyBlackFilter) {
+                octx.fillStyle = '#000000';
+                octx.fillRect(0, 0, w, h);
+                octx.drawImage(img, 0, 0, w, h);
+                return { canvas: outCanvas, mode: 'raw' };
+            }
+
+            // Đọc dữ liệu RGBA gốc chưa qua nền
+            octx.clearRect(0, 0, w, h);
+            octx.drawImage(img, 0, 0, w, h);
+            const imgData = octx.getImageData(0, 0, w, h);
+            const d = imgData.data;
+            const total = w * h;
+
+            // Kiểm tra xem ảnh PNG có sẵn kênh trong suốt (Alpha < 250) hay không
+            let transparentPixels = 0;
+            for (let i = 3; i < d.length; i += 16) {
+                if (d[i] < 250) transparentPixels++;
+            }
+            const hasAlphaTransparency = transparentPixels > Math.max(5, total / 800);
+
+            // Bước 1: Trộn mượt toàn bộ kênh Alpha lên nền Đen tuyền (#000000) (không viền trắng)
+            for (let p = 0; p < d.length; p += 4) {
+                const a = d[p + 3];
+                if (a === 0) {
+                    d[p] = 0; d[p + 1] = 0; d[p + 2] = 0; d[p + 3] = 255;
+                } else if (a < 255) {
+                    d[p]     = Math.round((d[p] * a) / 255);
+                    d[p + 1] = Math.round((d[p + 1] * a) / 255);
+                    d[p + 2] = Math.round((d[p + 2] * a) / 255);
+                    d[p + 3] = 255;
+                }
+            }
+
+            let modeDesc = 'alpha_black';
+
+            // Bước 2: Nếu ảnh PNG không có kênh trong suốt (ví dụ nền trắng / nền ca-rô giả / nền đơn sắc ở viền)
+            if (!hasAlphaTransparency && applyEdgeKey && w >= 8 && h >= 8) {
+                const corners = [
+                    0,
+                    (w - 1) * 4,
+                    ((h - 1) * w) * 4,
+                    ((h - 1) * w + (w - 1)) * 4
+                ];
+                // Lấy màu nền đại diện từ các góc không phải màu đen sẵn
+                let bgR = d[0], bgG = d[1], bgB = d[2];
+                let nonBlackCorners = 0;
+                let rSum = 0, gSum = 0, bSum = 0;
+                for (const ci of corners) {
+                    if (d[ci] > 22 || d[ci + 1] > 22 || d[ci + 2] > 22) {
+                        nonBlackCorners++;
+                        rSum += d[ci]; gSum += d[ci + 1]; bSum += d[ci + 2];
+                    }
+                }
+
+                if (nonBlackCorners >= 2) {
+                    bgR = Math.round(rSum / nonBlackCorners);
+                    bgG = Math.round(gSum / nonBlackCorners);
+                    bgB = Math.round(bSum / nonBlackCorners);
+
+                    // Hỗ trợ nhận diện luôn nền lưới ca-rô trắng/xám giả PNG thường gặp trên Google
+                    const isNeutralLight = (Math.abs(bgR - bgG) <= 12 && Math.abs(bgG - bgB) <= 12 && bgR >= 180);
+                    const visited = new Uint8Array(total);
+                    const queue = new Int32Array(total);
+                    let qHead = 0, qTail = 0;
+
+                    function colorDist(idx4) {
+                        const r = d[idx4], g = d[idx4 + 1], b = d[idx4 + 2];
+                        if (isNeutralLight && Math.abs(r - g) <= 10 && Math.abs(g - b) <= 10 && r >= 185) {
+                            return 0; // Khớp cả ô trắng & ô xám của nền ca-rô giả PNG
+                        }
+                        const dr = r - bgR, dg = g - bgG, db = b - bgB;
+                        return Math.sqrt(dr * dr + dg * dg + db * db);
+                    }
+
+                    function tryPush(px, py) {
+                        const pos = py * w + px;
+                        if (visited[pos]) return;
+                        if (colorDist(pos * 4) <= tol) {
+                            visited[pos] = 1;
+                            queue[qTail++] = pos;
+                        }
+                    }
+
+                    for (let x = 0; x < w; x++) { tryPush(x, 0); tryPush(x, h - 1); }
+                    for (let y = 1; y < h - 1; y++) { tryPush(0, y); tryPush(w - 1, y); }
+
+                    while (qHead < qTail) {
+                        const cur = queue[qHead++];
+                        const cx = cur % w;
+                        const cy = (cur / w) | 0;
+                        const c4 = cur * 4;
+                        d[c4] = 0; d[c4 + 1] = 0; d[c4 + 2] = 0;
+
+                        if (cx > 0) tryPush(cx - 1, cy);
+                        if (cx + 1 < w) tryPush(cx + 1, cy);
+                        if (cy > 0) tryPush(cx, cy - 1);
+                        if (cy + 1 < h) tryPush(cx, cy + 1);
+                    }
+
+                    // Làm mượt viền sát ranh giới vật thể (chống viền trắng lốm đốm)
+                    const feather = 22;
+                    for (let y = 1; y < h - 1; y++) {
+                        for (let x = 1; x < w - 1; x++) {
+                            const pos = y * w + x;
+                            if (visited[pos]) continue;
+                            if (visited[pos - 1] || visited[pos + 1] || visited[pos - w] || visited[pos + w]) {
+                                const p4 = pos * 4;
+                                const dist = colorDist(p4);
+                                if (dist < tol + feather) {
+                                    const keep = Math.max(0, Math.min(1, (dist - tol) / feather));
+                                    d[p4]     = Math.round(d[p4] * keep);
+                                    d[p4 + 1] = Math.round(d[p4 + 1] * keep);
+                                    d[p4 + 2] = Math.round(d[p4 + 2] * keep);
+                                }
+                            }
+                        }
+                    }
+                    modeDesc = 'edge_flood_black';
+                }
+            }
+
+            octx.putImageData(imgData, 0, 0);
+            return { canvas: outCanvas, mode: modeDesc };
+        }
+
+        function refreshProcessedStaticImage(resetBox) {
+            if (!rawUploadedImg) return;
+            const chkBlack = document.getElementById('chkAutoBlackPng');
+            const chkEdge = document.getElementById('chkEdgeFloodKey');
+            const tolSlider = document.getElementById('pngBgTolerance');
+            const statusBadge = document.getElementById('pngBgStatusBadge');
+
+            const useBlack = chkBlack ? chkBlack.checked : true;
+            const useEdge = chkEdge ? chkEdge.checked : true;
+            const tol = tolSlider ? (parseInt(tolSlider.value) || 34) : 34;
+
+            const res = buildBlackBgCanvas(rawUploadedImg, useBlack, useEdge, tol);
+            loadedImage = res.canvas;
+
+            if (statusBadge) {
+                if (!useBlack) {
+                    statusBadge.textContent = '○ Đang giữ nền gốc';
+                    statusBadge.style.color = 'var(--text-dim)';
+                } else if (res.mode === 'edge_flood_black') {
+                    statusBadge.textContent = '● Đã tự tách phông nền viền sang Đen (#000000)';
+                    statusBadge.style.color = 'var(--neon-green)';
+                } else {
+                    statusBadge.textContent = '● Đã đổi kênh nền trong suốt PNG sang Đen (#000000)';
+                    statusBadge.style.color = 'var(--neon-green)';
+                }
+            }
+
+            if (resetBox) {
+                setupCropper();
+            } else {
+                sourceCtx.fillStyle = '#000000';
+                sourceCtx.fillRect(0, 0, cropSourceCanvas.width, cropSourceCanvas.height);
+                sourceCtx.drawImage(loadedImage, 0, 0, cropSourceCanvas.width, cropSourceCanvas.height);
+                updatePreview();
+            }
+        }
+
         function loadImageStatic(file) {
+            const pBar = document.getElementById('progressBarContainer');
+            const pngCard = document.getElementById('pngBgControlCard');
+            rawUploadedIsPng = (file.type === 'image/png' || /\.png$/i.test(file.name));
+
             const reader = new FileReader();
             reader.onload = (event) => {
                 const img = new Image();
                 img.onload = () => {
-                    loadedImage = img;
+                    rawUploadedImg = img;
+                    if (pngCard) pngCard.style.display = 'flex';
+                    const chkBlack = document.getElementById('chkAutoBlackPng');
+                    if (chkBlack && rawUploadedIsPng) chkBlack.checked = true;
+
                     cropWorkspace.style.display = 'flex';
-                    setupCropper();
+                    refreshProcessedStaticImage(true);
+                    if (pBar) pBar.style.display = 'none';
+                    if (rawUploadedIsPng) {
+                        log('🖤 Ảnh PNG đã được tự động chuyển phông nền sang Đen (#000000) chuẩn Hologram!');
+                    }
                 };
                 img.src = event.target.result;
             };
@@ -4881,7 +4272,7 @@
                 connInput.value = localStorage.getItem('hologram_last_ip') || hostIp;
                 connectLocalWs();
             } else {
-                connInput.value = localStorage.getItem('hologram_device_id') || 'HOLO-B1D8';
+                connInput.value = localStorage.getItem('hologram_device_id') || 'HOLO-FD9C';
                 connect();
             }
         }, 200);
@@ -4930,7 +4321,7 @@
         if (btnToggleColorOrder) btnToggleColorOrder.addEventListener('click', toggleColorOrder);
         if (btnTab2ColorToggle) btnTab2ColorToggle.addEventListener('click', toggleColorOrder);
 
-    
+
         // ====================================================================
         // TAB 4: REAL-TIME DIGITAL CLOCK & SPACE WEATHER STATION
         // ====================================================================
@@ -4954,7 +4345,7 @@
             astroCtx.lineWidth = 3;
             astroCtx.strokeStyle = '#ffffff';
             astroCtx.stroke();
-            
+
             // Kính chắn gió mũ bảo hộ
             astroCtx.fillStyle = '#0f172a';
             astroCtx.beginPath();
@@ -5014,12 +4405,12 @@
             if (digit === 1) {
                 ctx.fillStyle = color;
                 ctx.beginPath();
-                ctx.roundRect(x + Math.floor(w/2 - th/2), y, th, h, 2);
+                ctx.roundRect(x + Math.floor(w / 2 - th / 2), y, th, h, 2);
                 ctx.fill();
                 ctx.beginPath();
-                ctx.moveTo(x + Math.floor(w/2 - th/2), y);
-                ctx.lineTo(x + Math.floor(w/2 - th/2), y + 12);
-                ctx.lineTo(x + Math.floor(w/2 - th/2) - 8, y + 12);
+                ctx.moveTo(x + Math.floor(w / 2 - th / 2), y);
+                ctx.lineTo(x + Math.floor(w / 2 - th / 2), y + 12);
+                ctx.lineTo(x + Math.floor(w / 2 - th / 2) - 8, y + 12);
                 ctx.fill();
                 return;
             }
@@ -5037,7 +4428,7 @@
             if (m & 0x08) rect(x, y + h - th, w, th);                  // bottom
             if (m & 0x10) rect(x, y + halfH, th, halfH + 1);          // bottom-left
             if (m & 0x20) rect(x, y, th, halfH + 1);                  // top-left
-            if (m & 0x40) rect(x, y + halfH - Math.floor(th/2), w, th);// middle
+            if (m & 0x40) rect(x, y + halfH - Math.floor(th / 2), w, th);// middle
         }
 
         // Vẽ toàn bộ màn hình đồng hồ Canvas 240x240 theo thời gian thực
@@ -5399,6 +4790,282 @@
 
         // Gọi khởi tạo Tab đồng hồ khi trang web tải xong
         setTimeout(initClockTab, 300);
+
+        // ====================================================================
+        // PNG AUTO-BLACK BACKGROUND LISTENERS & MP4 -> MICROSD VIDEO CONVERTER
+        // ====================================================================
+        (function initPngAndVideoFeatures() {
+            const chkBlack = document.getElementById('chkAutoBlackPng');
+            const chkEdge = document.getElementById('chkEdgeFloodKey');
+            const tolSlider = document.getElementById('pngBgTolerance');
+            const tolVal = document.getElementById('pngTolVal');
+
+            if (chkBlack) chkBlack.addEventListener('change', () => refreshProcessedStaticImage(false));
+            if (chkEdge) chkEdge.addEventListener('change', () => refreshProcessedStaticImage(false));
+            if (tolSlider) {
+                tolSlider.addEventListener('input', () => {
+                    if (tolVal) tolVal.textContent = tolSlider.value;
+                    refreshProcessedStaticImage(false);
+                });
+            }
+
+            // Video Converter & MicroSD Player
+            const videoDropzone = document.getElementById('videoDropzone');
+            const videoFileInput = document.getElementById('videoFileInput');
+            const videoConfigPanel = document.getElementById('videoConfigPanel');
+            const videoPreviewCanvas = document.getElementById('videoPreviewCanvas');
+            const videoPreviewCtx = videoPreviewCanvas ? videoPreviewCanvas.getContext('2d') : null;
+            const videoFileInfo = document.getElementById('videoFileInfo');
+            const btnConvertUploadVideo = document.getElementById('btnConvertUploadVideo');
+            const btnConvertDownloadVideo = document.getElementById('btnConvertDownloadVideo');
+            const btnPlaySdVideo = document.getElementById('btnPlaySdVideo');
+            const btnDeleteSdVideo = document.getElementById('btnDeleteSdVideo');
+
+            let selectedVideoFile = null;
+
+            if (videoDropzone && videoFileInput) {
+                videoDropzone.addEventListener('click', () => videoFileInput.click());
+                videoFileInput.addEventListener('change', (e) => {
+                    if (e.target.files && e.target.files[0]) {
+                        handleSelectedVideo(e.target.files[0]);
+                    }
+                });
+            }
+
+            function handleSelectedVideo(file) {
+                selectedVideoFile = file;
+                if (videoConfigPanel) videoConfigPanel.style.display = 'flex';
+                const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+
+                if (/\.mjp(e)?g$/i.test(file.name)) {
+                    if (videoFileInfo) videoFileInfo.textContent = `🎞️ ${file.name} (${sizeMB} MB • Chuẩn MJPEG sẵn sàng nạp)`;
+                    return;
+                }
+
+                const tempVid = document.createElement('video');
+                tempVid.preload = 'metadata';
+                tempVid.muted = true;
+                tempVid.playsInline = true;
+                tempVid.src = URL.createObjectURL(file);
+                tempVid.onloadedmetadata = () => {
+                    const dur = tempVid.duration ? tempVid.duration.toFixed(1) : '?';
+                    if (videoFileInfo) {
+                        videoFileInfo.textContent = `🎬 ${file.name} (${tempVid.videoWidth}×${tempVid.videoHeight} • ${dur}s • ${sizeMB}MB)`;
+                    }
+                    tempVid.currentTime = Math.min(0.5, (tempVid.duration || 1) * 0.1);
+                };
+                tempVid.onseeked = () => {
+                    if (videoPreviewCtx) {
+                        drawVideoSquare240(tempVid, videoPreviewCtx);
+                    }
+                    URL.revokeObjectURL(tempVid.src);
+                };
+            }
+
+            function drawVideoSquare240(vid, ctx2d) {
+                const vw = vid.videoWidth || 240;
+                const vh = vid.videoHeight || 240;
+                const side = Math.min(vw, vh);
+                const sx = Math.floor((vw - side) / 2);
+                const sy = Math.floor((vh - side) / 2);
+                ctx2d.fillStyle = '#000000';
+                ctx2d.fillRect(0, 0, 240, 240);
+                ctx2d.drawImage(vid, sx, sy, side, side, 0, 0, 240, 240);
+            }
+
+            async function convertVideoToMjpgBlob(file) {
+                if (/\.mjp(e)?g$/i.test(file.name)) {
+                    return file;
+                }
+                const fps = parseInt(document.getElementById('videoFpsSelect')?.value) || 20;
+                const maxSec = parseInt(document.getElementById('videoMaxSecSelect')?.value) || 0;
+                const delayMs = Math.round(1000 / fps);
+
+                const pCard = document.getElementById('videoProgressCard');
+                const pFill = document.getElementById('videoProgressFill');
+                const pPct = document.getElementById('videoProgressPct');
+                const pStat = document.getElementById('videoProgressStatus');
+                const pTitle = document.getElementById('videoProgressTitle');
+                if (pCard) pCard.style.display = 'block';
+                if (pTitle) pTitle.textContent = '🎥 Đang chuyển đổi MP4 sang chuẩn Hologram 240×240...';
+
+                const vid = document.createElement('video');
+                vid.muted = true;
+                vid.playsInline = true;
+                vid.preload = 'auto';
+                const objUrl = URL.createObjectURL(file);
+                vid.src = objUrl;
+
+                await new Promise((res, rej) => {
+                    vid.onloadedmetadata = () => res();
+                    vid.onerror = () => rej(new Error('Không thể giải mã định dạng video này trên trình duyệt'));
+                });
+
+                const totalDuration = (maxSec > 0 && vid.duration > maxSec) ? maxSec : vid.duration;
+                const totalFrames = Math.max(1, Math.floor(totalDuration * fps));
+                const workCanvas = document.createElement('canvas');
+                workCanvas.width = 240;
+                workCanvas.height = 240;
+                const wctx = workCanvas.getContext('2d');
+
+                const chunks = [];
+                for (let i = 0; i < totalFrames; i++) {
+                    const t = Math.min(vid.duration - 0.01, i / fps);
+                    vid.currentTime = Math.max(0, t);
+                    await new Promise((r) => { vid.onseeked = () => r(); });
+
+                    drawVideoSquare240(vid, wctx);
+                    if (videoPreviewCtx && (i % 3 === 0)) {
+                        videoPreviewCtx.drawImage(workCanvas, 0, 0);
+                    }
+
+                    const jpegBlob = await new Promise((r) => workCanvas.toBlob(r, 'image/jpeg', 0.78));
+                    const jpegBuf = new Uint8Array(await jpegBlob.arrayBuffer());
+
+                    // Header 10 byte: "MJPG" + delayMs(2B BE) + frameLen(4B BE)
+                    const hdr = new Uint8Array(10);
+                    hdr[0] = 0x4D; hdr[1] = 0x4A; hdr[2] = 0x50; hdr[3] = 0x47;
+                    hdr[4] = (delayMs >> 8) & 0xFF;
+                    hdr[5] = delayMs & 0xFF;
+                    const len = jpegBuf.byteLength;
+                    hdr[6] = (len >>> 24) & 0xFF;
+                    hdr[7] = (len >>> 16) & 0xFF;
+                    hdr[8] = (len >>> 8) & 0xFF;
+                    hdr[9] = len & 0xFF;
+
+                    chunks.push(hdr);
+                    chunks.push(jpegBuf);
+
+                    const pct = Math.round(((i + 1) / totalFrames) * 100);
+                    if (pFill) pFill.style.width = pct + '%';
+                    if (pPct) pPct.textContent = pct + '%';
+                    if (pStat) pStat.textContent = `Đã nén ${i + 1}/${totalFrames} frames (${fps} FPS)`;
+                }
+
+                URL.revokeObjectURL(objUrl);
+                return new Blob(chunks, { type: 'application/octet-stream' });
+            }
+
+            function getCubeHttpOrigin() {
+                if (currentConnType === 'lan' && connInput && connInput.value) {
+                    const host = connInput.value.trim().replace(/^wss?:\/\//, '').split(':')[0];
+                    if (host && /^(\d{1,3}\.){3}\d{1,3}$/.test(host)) {
+                        return `http://${host}`;
+                    }
+                }
+                if (/^(\d{1,3}\.){3}\d{1,3}$/.test(window.location.hostname)) {
+                    return `http://${window.location.hostname}`;
+                }
+                return '';
+            }
+
+            if (btnConvertDownloadVideo) {
+                btnConvertDownloadVideo.addEventListener('click', async () => {
+                    if (!selectedVideoFile) { alert('Vui lòng chọn file Video trước!'); return; }
+                    try {
+                        btnConvertDownloadVideo.disabled = true;
+                        const mjpgBlob = await convertVideoToMjpgBlob(selectedVideoFile);
+                        const a = document.createElement('a');
+                        a.href = URL.createObjectURL(mjpgBlob);
+                        a.download = 'video.mjpg';
+                        a.click();
+                        log(`💾 Đã tạo file video.mjpg (${(mjpgBlob.size / (1024 * 1024)).toFixed(2)} MB)! Hãy chép vào thư mục gốc Thẻ nhớ MicroSD rồi cắm vào Cube.`);
+                    } catch (err) {
+                        alert('Lỗi chuyển đổi Video: ' + err.message);
+                    } finally {
+                        btnConvertDownloadVideo.disabled = false;
+                    }
+                });
+            }
+
+            if (btnConvertUploadVideo) {
+                btnConvertUploadVideo.addEventListener('click', async () => {
+                    if (!selectedVideoFile) { alert('Vui lòng chọn file Video trước!'); return; }
+                    const origin = getCubeHttpOrigin();
+                    if (!origin) {
+                        alert('Để bắn Video tốc độ cao qua Wi-Fi vào Thẻ nhớ, hãy kết nối cùng mạng Wi-Fi (LAN) với Cube, hoặc bấm nút [Tải file video.mjpg] để chép trực tiếp vào Thẻ nhớ!');
+                        return;
+                    }
+                    try {
+                        btnConvertUploadVideo.disabled = true;
+                        const mjpgBlob = await convertVideoToMjpgBlob(selectedVideoFile);
+                        const pTitle = document.getElementById('videoProgressTitle');
+                        const pStat = document.getElementById('videoProgressStatus');
+                        const pFill = document.getElementById('videoProgressFill');
+                        const pPct = document.getElementById('videoProgressPct');
+                        if (pTitle) pTitle.textContent = '🚀 Đang truyền Video qua Wi-Fi vào Thẻ nhớ Cube...';
+
+                        await new Promise((resolve, reject) => {
+                            const fd = new FormData();
+                            fd.append('file', mjpgBlob, 'video.mjpg');
+                            const xhr = new XMLHttpRequest();
+                            xhr.open('POST', `${origin}/upload_video`, true);
+                            xhr.upload.onprogress = (ev) => {
+                                if (ev.lengthComputable) {
+                                    const pct = Math.round((ev.loaded / ev.total) * 100);
+                                    if (pFill) pFill.style.width = pct + '%';
+                                    if (pPct) pPct.textContent = pct + '%';
+                                    if (pStat) pStat.textContent = `Đã truyền ${(ev.loaded / 1024).toFixed(0)} / ${(ev.total / 1024).toFixed(0)} KB`;
+                                }
+                            };
+                            xhr.onload = () => (xhr.status >= 200 && xhr.status < 300) ? resolve() : reject(new Error(`HTTP ${xhr.status}`));
+                            xhr.onerror = () => reject(new Error('Không kết nối được HTTP tới Cube'));
+                            xhr.timeout = 120000;
+                            xhr.send(fd);
+                        });
+                        log('🎬 Đã nạp xong Video vào Thẻ nhớ Cube và bắt đầu trình chiếu!');
+                    } catch (err) {
+                        alert('Lỗi nạp Video: ' + err.message);
+                    } finally {
+                        btnConvertUploadVideo.disabled = false;
+                    }
+                });
+            }
+
+            if (btnPlaySdVideo) {
+                btnPlaySdVideo.addEventListener('click', () => {
+                    sendCommand({ cmd: 'video' });
+                    log('▶️ Đã gửi lệnh phát Video (/video.mjpg) từ Thẻ nhớ!');
+                });
+            }
+
+            if (btnDeleteSdVideo) {
+                btnDeleteSdVideo.addEventListener('click', () => {
+                    if (confirm('Xóa file /video.mjpg khỏi bộ nhớ Cube?')) {
+                        sendCommand({ cmd: 'del_video' });
+                        log('🗑️ Đã gửi lệnh xóa file /video.mjpg.');
+                    }
+                });
+            }
+
+            // Cập nhật nhiệt độ chip ESP32-S3 & trạng thái thẻ nhớ định kỳ khi ở LAN
+            async function pollHardwareStatus() {
+                const origin = getCubeHttpOrigin();
+                if (!origin) return;
+                try {
+                    const r = await fetch(`${origin}/status`, { cache: 'no-store' });
+                    if (!r.ok) return;
+                    const st = await r.json();
+                    const tBadge = document.getElementById('hwTempBadge');
+                    if (tBadge && st.chipTempC !== undefined) {
+                        const sdTxt = st.sdMounted ? `• SD ${st.sdTotalMB || ''}MB` : `• ${st.storage || 'Flash'}`;
+                        tBadge.textContent = `• 🌡️ ${st.chipTempC}°C ${sdTxt}`;
+                        tBadge.style.color = st.chipTempC >= 65 ? '#ff6b6b' : 'var(--neon-green)';
+                    }
+                    const sdVid = document.getElementById('sdVideoBadge');
+                    if (sdVid) {
+                        if (st.sdMounted) {
+                            sdVid.textContent = st.hasVideo ? `SD Sẵn sàng • Có Video (${(st.videoSize / (1024*1024)).toFixed(1)}MB)` : `SD Sẵn sàng (${st.sdTotalMB}MB)`;
+                        } else {
+                            sdVid.textContent = 'Chưa cắm thẻ MicroSD (Đang dùng Flash)';
+                        }
+                    }
+                } catch (e) {}
+            }
+            setInterval(pollHardwareStatus, 8000);
+            setTimeout(pollHardwareStatus, 1500);
+        })();
+
 
     </script>
 </body>
