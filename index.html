@@ -864,8 +864,948 @@
             }
         }
     </style>
-    <script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/omggif@1.0.10/omggif.js"></script>
+    <script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js">
+        // ====================================================================
+        // TAB 4: REAL-TIME DIGITAL CLOCK & SPACE WEATHER STATION
+        // ====================================================================
+        const clockCanvas = document.getElementById('clockCanvas');
+        const clockCtx = clockCanvas ? clockCanvas.getContext('2d') : null;
+        let clockInterval = null;
+        let lastWeatherFetchTime = 0;
+
+        // Bitmap phi hành gia 64x64 cho Canvas
+        const astroSpriteImg = document.createElement('canvas');
+        astroSpriteImg.width = 64;
+        astroSpriteImg.height = 64;
+        const astroCtx = astroSpriteImg.getContext('2d');
+
+        // Khởi tạo sprite phi hành gia
+        (function initAstroSprite() {
+            astroCtx.fillStyle = '#ffffff';
+            // Vẽ đầu, mũ bảo hộ, cơ thể, ba lô
+            astroCtx.beginPath();
+            astroCtx.ellipse(32, 28, 16, 16, 0, 0, Math.PI * 2);
+            astroCtx.lineWidth = 3;
+            astroCtx.strokeStyle = '#ffffff';
+            astroCtx.stroke();
+            
+            // Kính chắn gió mũ bảo hộ
+            astroCtx.fillStyle = '#0f172a';
+            astroCtx.beginPath();
+            astroCtx.ellipse(32, 28, 11, 9, 0, 0, Math.PI * 2);
+            astroCtx.fill();
+            astroCtx.strokeStyle = '#38bdf8';
+            astroCtx.lineWidth = 1.5;
+            astroCtx.stroke();
+            // Điểm sáng kính
+            astroCtx.fillStyle = '#ffffff';
+            astroCtx.beginPath();
+            astroCtx.ellipse(36, 25, 3, 2, 0, 0, Math.PI * 2);
+            astroCtx.fill();
+
+            // Thân và balo
+            astroCtx.strokeStyle = '#ffffff';
+            astroCtx.lineWidth = 3;
+            astroCtx.beginPath();
+            astroCtx.roundRect(24, 42, 16, 16, 4);
+            astroCtx.stroke();
+            // Balo phản lực
+            astroCtx.beginPath();
+            astroCtx.roundRect(16, 40, 7, 18, 3);
+            astroCtx.stroke();
+            // Tay và chân
+            astroCtx.beginPath();
+            astroCtx.moveTo(24, 46);
+            astroCtx.lineTo(16, 52);
+            astroCtx.moveTo(40, 46);
+            astroCtx.lineTo(46, 54);
+            astroCtx.moveTo(28, 58);
+            astroCtx.lineTo(26, 62);
+            astroCtx.moveTo(36, 58);
+            astroCtx.lineTo(38, 62);
+            astroCtx.stroke();
+        })();
+
+        // Hàm vẽ số điện tử bo góc (Hours / Minutes)
+        function drawCanvasClockDigit(ctx, x, y, digit, w, h, th, color, isHollow) {
+            const segs = [0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F];
+            const m = segs[digit] || 0;
+            const halfH = Math.floor(h / 2);
+            const r = 3;
+
+            if (digit === 0 && isHollow) {
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.roundRect(x, y, w, h, 6);
+                ctx.fill();
+                ctx.fillStyle = '#000000';
+                ctx.beginPath();
+                ctx.roundRect(x + th, y + th, w - 2 * th, h - 2 * th, 4);
+                ctx.fill();
+                return;
+            }
+
+            if (digit === 1) {
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.roundRect(x + Math.floor(w/2 - th/2), y, th, h, 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(x + Math.floor(w/2 - th/2), y);
+                ctx.lineTo(x + Math.floor(w/2 - th/2), y + 12);
+                ctx.lineTo(x + Math.floor(w/2 - th/2) - 8, y + 12);
+                ctx.fill();
+                return;
+            }
+
+            ctx.fillStyle = color;
+            function rect(rx, ry, rw, rh) {
+                ctx.beginPath();
+                ctx.roundRect(rx, ry, rw, rh, r);
+                ctx.fill();
+            }
+
+            if (m & 0x01) rect(x, y, w, th);                           // top
+            if (m & 0x02) rect(x + w - th, y, th, halfH + 1);          // top-right
+            if (m & 0x04) rect(x + w - th, y + halfH, th, halfH + 1);  // bottom-right
+            if (m & 0x08) rect(x, y + h - th, w, th);                  // bottom
+            if (m & 0x10) rect(x, y + halfH, th, halfH + 1);          // bottom-left
+            if (m & 0x20) rect(x, y, th, halfH + 1);                  // top-left
+            if (m & 0x40) rect(x, y + halfH - Math.floor(th/2), w, th);// middle
+        }
+
+        // Vẽ toàn bộ màn hình đồng hồ Canvas 240x240 theo thời gian thực
+        function renderLiveClockCanvas() {
+            if (!clockCtx) return;
+            const now = new Date();
+            let hours = now.getHours();
+            const minutes = now.getMinutes();
+            const seconds = now.getSeconds();
+            const is24H = document.getElementById('chk24HourFormat') ? document.getElementById('chk24HourFormat').checked : true;
+            if (!is24H) {
+                hours = hours % 12 || 12;
+            }
+
+            const city = (document.getElementById('clockCityInput') ? document.getElementById('clockCityInput').value : 'Seoul') || 'Seoul';
+            const country = (document.getElementById('clockCountryInput') ? document.getElementById('clockCountryInput').value : 'KR') || 'KR';
+            const temp = parseInt(document.getElementById('clockTempInput')?.value) || 14;
+            const maxTemp = parseInt(document.getElementById('clockMaxTempInput')?.value) || 18;
+            const humidity = parseInt(document.getElementById('clockHumidityInput')?.value) || 32;
+            const weather = document.getElementById('clockWeatherSelect')?.value || 'Clear';
+
+            // 0. Xóa nền đen tuyệt đối (chuẩn Hologram)
+            clockCtx.fillStyle = '#000000';
+            clockCtx.fillRect(0, 0, 240, 240);
+
+            // 1. Dòng 1: Thành phố (Vàng) & Huy hiệu Quốc gia (Xanh lá)
+            clockCtx.fillStyle = '#ffb703';
+            clockCtx.font = 'bold 18px system-ui, -apple-system, sans-serif';
+            clockCtx.textAlign = 'left';
+            clockCtx.textBaseline = 'top';
+            clockCtx.fillText(city, 12, 8);
+
+            const cityMetrics = clockCtx.measureText(city);
+            let badgeX = 12 + Math.min(cityMetrics.width + 8, 120);
+            clockCtx.fillStyle = '#70e000';
+            clockCtx.beginPath();
+            clockCtx.roundRect(badgeX, 7, 36, 18, 4);
+            clockCtx.fill();
+
+            clockCtx.fillStyle = '#000000';
+            clockCtx.font = 'bold 12px system-ui, sans-serif';
+            clockCtx.textAlign = 'center';
+            clockCtx.fillText(country, badgeX + 18, 10);
+
+            // Biểu tượng Mặt trời / Trăng
+            const realHour = now.getHours();
+            if (realHour >= 6 && realHour < 18) {
+                // Mặt trời cam đất
+                clockCtx.fillStyle = '#e07a5f';
+                clockCtx.beginPath();
+                clockCtx.arc(206, 18, 14, 0, Math.PI * 2);
+                clockCtx.fill();
+            } else {
+                // Mặt trăng khuyết
+                clockCtx.fillStyle = '#ffb703';
+                clockCtx.beginPath();
+                clockCtx.arc(206, 18, 14, 0, Math.PI * 2);
+                clockCtx.fill();
+                clockCtx.fillStyle = '#000000';
+                clockCtx.beginPath();
+                clockCtx.arc(200, 14, 12, 0, Math.PI * 2);
+                clockCtx.fill();
+            }
+
+            // 2. Dòng 2: Max temp
+            clockCtx.fillStyle = '#ffffff';
+            clockCtx.font = '13px system-ui, sans-serif';
+            clockCtx.textAlign = 'left';
+            clockCtx.fillText(`Max temp ${maxTemp}°C`, 12, 34);
+
+            // 3. Khối đồng hồ số khổng lồ (Hours: White, Minutes: Gold Outline)
+            const h1 = Math.floor(hours / 10);
+            const h2 = hours % 10;
+            const m1 = Math.floor(minutes / 10);
+            const m2 = minutes % 10;
+
+            drawCanvasClockDigit(clockCtx, 12, 58, h1, 26, 64, 7, '#ffffff', false);
+            drawCanvasClockDigit(clockCtx, 42, 58, h2, 26, 64, 7, '#ffffff', false);
+
+            // Dấu hai chấm (:)
+            clockCtx.fillStyle = '#ffffff';
+            clockCtx.fillRect(75, 74, 6, 8);
+            clockCtx.fillRect(75, 100, 6, 8);
+
+            // Minutes (Vàng cam viền rỗng)
+            drawCanvasClockDigit(clockCtx, 88, 58, m1, 26, 64, 7, '#ffb703', true);
+            drawCanvasClockDigit(clockCtx, 118, 58, m2, 26, 64, 7, '#ffb703', true);
+
+            // Huy hiệu thời tiết
+            clockCtx.fillStyle = '#ffffff';
+            clockCtx.beginPath();
+            clockCtx.roundRect(154, 56, 74, 22, 5);
+            clockCtx.fill();
+            clockCtx.fillStyle = '#14234b';
+            clockCtx.font = 'bold 13px system-ui, sans-serif';
+            clockCtx.textAlign = 'center';
+            clockCtx.fillText(weather, 191, 60);
+
+            // Số Giây (Seconds)
+            clockCtx.fillStyle = '#ffffff';
+            clockCtx.font = 'bold 28px Consolas, monospace';
+            clockCtx.textAlign = 'left';
+            const secStr = String(seconds).padStart(2, '0');
+            clockCtx.fillText(secStr, 170, 88);
+
+            // 4. Dòng 4: Ngày tháng & Thứ
+            const daysArr = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const dayStr = daysArr[now.getDay()];
+            const dateStr = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+
+            clockCtx.fillStyle = '#ffffff';
+            clockCtx.font = '14px system-ui, sans-serif';
+            clockCtx.fillText(dateStr, 12, 134);
+            clockCtx.fillStyle = '#70e000';
+            clockCtx.font = 'bold 14px system-ui, sans-serif';
+            clockCtx.fillText(dayStr, 118, 134);
+
+            // 5. Cột trái dưới: Thanh đo Nhiệt độ & Độ ẩm
+            // 5.1 Nhiệt độ
+            clockCtx.fillStyle = '#ef4444';
+            clockCtx.beginPath();
+            clockCtx.arc(17, 172, 5, 0, Math.PI * 2);
+            clockCtx.fill();
+            clockCtx.fillStyle = '#ffffff';
+            clockCtx.fillRect(15, 160, 4, 10);
+
+            // Thanh đo nhiệt độ
+            clockCtx.strokeStyle = '#475569';
+            clockCtx.lineWidth = 1.5;
+            clockCtx.beginPath();
+            clockCtx.roundRect(30, 165, 54, 10, 4);
+            clockCtx.stroke();
+            const tempFillW = Math.max(3, Math.min(50, Math.round((Math.max(0, temp) / 45) * 50)));
+            clockCtx.fillStyle = '#0082ff';
+            clockCtx.beginPath();
+            clockCtx.roundRect(32, 167, tempFillW, 6, 2);
+            clockCtx.fill();
+            clockCtx.fillStyle = '#ffffff';
+            clockCtx.font = 'bold 13px system-ui, sans-serif';
+            clockCtx.fillText(`${temp}°C`, 90, 163);
+
+            // 5.2 Độ ẩm
+            clockCtx.fillStyle = '#0082ff';
+            clockCtx.beginPath();
+            clockCtx.arc(17, 199, 4.5, 0, Math.PI * 2);
+            clockCtx.fill();
+            clockCtx.beginPath();
+            clockCtx.moveTo(17, 191);
+            clockCtx.lineTo(13, 198);
+            clockCtx.lineTo(21, 198);
+            clockCtx.fill();
+
+            // Thanh đo độ ẩm
+            clockCtx.strokeStyle = '#475569';
+            clockCtx.beginPath();
+            clockCtx.roundRect(30, 195, 54, 10, 4);
+            clockCtx.stroke();
+            const humFillW = Math.max(3, Math.min(50, Math.round((Math.max(0, Math.min(100, humidity)) / 100) * 50)));
+            clockCtx.fillStyle = '#ffdc32';
+            clockCtx.beginPath();
+            clockCtx.roundRect(32, 197, humFillW, 6, 2);
+            clockCtx.fill();
+            clockCtx.fillStyle = '#ffffff';
+            clockCtx.font = 'bold 13px system-ui, sans-serif';
+            clockCtx.fillText(`${humidity}%`, 90, 193);
+
+            // 6. Cột phải dưới: Phi hành gia nhấp nhô & Sao lấp lánh
+            const astroBob = Math.sin(Date.now() / 500) * 2;
+            clockCtx.drawImage(astroSpriteImg, 160, 155 + astroBob);
+
+            // Sao lấp lánh xung quanh phi hành gia
+            const starPhase = Math.floor(Date.now() / 400) % 4;
+            const stars = [
+                { x: 152, y: 165 },
+                { x: 230, y: 160 },
+                { x: 154, y: 222 },
+                { x: 226, y: 228 }
+            ];
+            stars.forEach((s, idx) => {
+                clockCtx.fillStyle = (idx === starPhase) ? '#00f2fe' : (idx === (starPhase + 2) % 4 ? '#ffffff' : 'rgba(255,255,255,0.2)');
+                clockCtx.fillRect(s.x, s.y, 2, 2);
+            });
+        }
+
+        // Lấy thời tiết thực tế từ Open-Meteo API
+        async function fetchRealWeather(lat, lon, cityName, countryCode) {
+            const badge = document.getElementById('weatherStatusBadge');
+            try {
+                if (badge) { badge.textContent = 'Đang tải thời tiết...'; badge.style.color = 'var(--accent)'; }
+                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code&daily=temperature_2m_max&timezone=auto`;
+                const res = await fetch(url);
+                const data = await res.json();
+                if (data && data.current) {
+                    const curTemp = Math.round(data.current.temperature_2m);
+                    const curHum = Math.round(data.current.relative_humidity_2m);
+                    const maxTemp = (data.daily && data.daily.temperature_2m_max && data.daily.temperature_2m_max[0] !== undefined)
+                        ? Math.round(data.daily.temperature_2m_max[0])
+                        : (curTemp + 4);
+                    const wCode = data.current.weather_code;
+                    let wText = "Clear";
+                    if (wCode >= 1 && wCode <= 3) wText = "Clouds";
+                    else if (wCode >= 45 && wCode <= 48) wText = "Fog";
+                    else if (wCode >= 51 && wCode <= 67) wText = "Rain";
+                    else if (wCode >= 71 && wCode <= 77) wText = "Snow";
+                    else if (wCode >= 80 && wCode <= 82) wText = "Showers";
+                    else if (wCode >= 95) wText = "Thunder";
+
+                    if (document.getElementById('clockTempInput')) document.getElementById('clockTempInput').value = curTemp;
+                    if (document.getElementById('clockMaxTempInput')) document.getElementById('clockMaxTempInput').value = maxTemp;
+                    if (document.getElementById('clockHumidityInput')) document.getElementById('clockHumidityInput').value = curHum;
+                    if (document.getElementById('clockWeatherSelect')) document.getElementById('clockWeatherSelect').value = wText;
+                    if (cityName && document.getElementById('clockCityInput')) document.getElementById('clockCityInput').value = cityName;
+                    if (countryCode && document.getElementById('clockCountryInput')) document.getElementById('clockCountryInput').value = countryCode;
+
+                    if (badge) { badge.textContent = `● Đã cập nhật (${curTemp}°C, ${wText})`; badge.style.color = 'var(--neon-green)'; }
+                    log(`Thời tiết ${cityName || 'Seoul'}: ${curTemp}°C, Độ ẩm ${curHum}%, Max ${maxTemp}°C, ${wText}`);
+                    lastWeatherFetchTime = Date.now();
+                }
+            } catch (err) {
+                console.warn('Weather fetch error:', err);
+                if (badge) { badge.textContent = '● Ngoại tuyến (Dùng số mặc định)'; badge.style.color = '#eab308'; }
+            }
+        }
+
+        // Khởi động Tab 4 & Sự kiện tương tác
+        function initClockTab() {
+            // Chạy vòng lặp render đồng hồ thời gian thực
+            if (clockInterval) clearInterval(clockInterval);
+            clockInterval = setInterval(renderLiveClockCanvas, 500);
+            renderLiveClockCanvas();
+
+            // Nút Chiếu Đồng Hồ Lên Cube
+            const btnPlayClock = document.getElementById('btnPlayClockOnCube');
+            if (btnPlayClock) {
+                btnPlayClock.addEventListener('click', () => {
+                    const city = document.getElementById('clockCityInput')?.value || 'Seoul';
+                    const country = document.getElementById('clockCountryInput')?.value || 'KR';
+                    const temp = parseInt(document.getElementById('clockTempInput')?.value) || 14;
+                    const maxTemp = parseInt(document.getElementById('clockMaxTempInput')?.value) || 18;
+                    const humidity = parseInt(document.getElementById('clockHumidityInput')?.value) || 32;
+                    const weather = document.getElementById('clockWeatherSelect')?.value || 'Clear';
+
+                    sendCommand({
+                        cmd: "clock",
+                        city: city,
+                        country: country,
+                        temp: temp,
+                        maxTemp: maxTemp,
+                        humidity: humidity,
+                        weather: weather,
+                        epoch: Math.floor(Date.now() / 1000),
+                        tz: -(new Date().getTimezoneOffset() / 60)
+                    });
+                    log(`Đã gửi lệnh chiếu Đồng Hồ Thời Gian Thực (${city}, ${temp}°C) lên Cube!`);
+                });
+            }
+
+            // Nút Đồng bộ thời gian & thời tiết
+            const btnSync = document.getElementById('btnSyncClockNow');
+            if (btnSync) {
+                btnSync.addEventListener('click', () => {
+                    const city = document.getElementById('clockCityInput')?.value || 'Seoul';
+                    const country = document.getElementById('clockCountryInput')?.value || 'KR';
+                    const temp = parseInt(document.getElementById('clockTempInput')?.value) || 14;
+                    const maxTemp = parseInt(document.getElementById('clockMaxTempInput')?.value) || 18;
+                    const humidity = parseInt(document.getElementById('clockHumidityInput')?.value) || 32;
+                    const weather = document.getElementById('clockWeatherSelect')?.value || 'Clear';
+
+                    sendCommand({
+                        cmd: "clock_sync",
+                        city: city,
+                        country: country,
+                        temp: temp,
+                        maxTemp: maxTemp,
+                        humidity: humidity,
+                        weather: weather,
+                        epoch: Math.floor(Date.now() / 1000)
+                    });
+                    log(`Đã đồng bộ giờ thiết bị & thời tiết sang Cube!`);
+                });
+            }
+
+            // Các nút chọn nhanh thành phố
+            document.querySelectorAll('.btn-city').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const city = btn.dataset.city;
+                    const country = btn.dataset.country;
+                    const lat = parseFloat(btn.dataset.lat);
+                    const lon = parseFloat(btn.dataset.lon);
+                    document.getElementById('clockCityInput').value = city;
+                    document.getElementById('clockCountryInput').value = country;
+                    fetchRealWeather(lat, lon, city, country);
+                });
+            });
+
+            // Nút lấy vị trí hiện tại (GPS / Geolocation)
+            const btnGeo = document.getElementById('btnAutoGeoLocation');
+            if (btnGeo) {
+                btnGeo.addEventListener('click', () => {
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(
+                            pos => {
+                                fetchRealWeather(pos.coords.latitude, pos.coords.longitude, "Vị trí của bạn", "VN");
+                            },
+                            err => {
+                                log("Không thể lấy GPS, đang dùng vị trí mặc định TP.HCM");
+                                fetchRealWeather(10.8231, 106.6297, "TP.HCM", "VN");
+                            }
+                        );
+                    } else {
+                        fetchRealWeather(10.8231, 106.6297, "TP.HCM", "VN");
+                    }
+                });
+            }
+
+            // Nút Refresh thời tiết
+            const btnRefresh = document.getElementById('btnRefreshWeather');
+            if (btnRefresh) {
+                btnRefresh.addEventListener('click', () => {
+                    const city = document.getElementById('clockCityInput')?.value || 'Seoul';
+                    if (city.toLowerCase().includes('hcm') || city.toLowerCase().includes('hồ chí minh')) {
+                        fetchRealWeather(10.8231, 106.6297, "TP.HCM", "VN");
+                    } else if (city.toLowerCase().includes('hà nội') || city.toLowerCase().includes('hanoi')) {
+                        fetchRealWeather(21.0285, 105.8542, "Hà Nội", "VN");
+                    } else if (city.toLowerCase().includes('đà nẵng') || city.toLowerCase().includes('danang')) {
+                        fetchRealWeather(16.0544, 108.2022, "Đà Nẵng", "VN");
+                    } else if (city.toLowerCase().includes('tokyo')) {
+                        fetchRealWeather(35.6762, 139.6503, "Tokyo", "JP");
+                    } else {
+                        fetchRealWeather(37.5665, 126.9780, "Seoul", "KR");
+                    }
+                });
+            }
+
+            // Tự động đồng bộ mỗi 10 phút sang Cube nếu đang mở web
+            setInterval(() => {
+                const autoSync = document.getElementById('chkAutoSyncClock');
+                if (autoSync && autoSync.checked && (typeof isConnected !== 'undefined' && isConnected)) {
+                    const city = document.getElementById('clockCityInput')?.value || 'Seoul';
+                    const country = document.getElementById('clockCountryInput')?.value || 'KR';
+                    const temp = parseInt(document.getElementById('clockTempInput')?.value) || 14;
+                    const maxTemp = parseInt(document.getElementById('clockMaxTempInput')?.value) || 18;
+                    const humidity = parseInt(document.getElementById('clockHumidityInput')?.value) || 32;
+                    const weather = document.getElementById('clockWeatherSelect')?.value || 'Clear';
+
+                    sendCommand({
+                        cmd: "clock_sync",
+                        city: city,
+                        country: country,
+                        temp: temp,
+                        maxTemp: maxTemp,
+                        humidity: humidity,
+                        weather: weather,
+                        epoch: Math.floor(Date.now() / 1000)
+                    });
+                }
+            }, 600000);
+        }
+
+        // Gọi khởi tạo Tab đồng hồ khi trang web tải xong
+        setTimeout(initClockTab, 300);
+
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/omggif@1.0.10/omggif.js">
+        // ====================================================================
+        // TAB 4: REAL-TIME DIGITAL CLOCK & SPACE WEATHER STATION
+        // ====================================================================
+        const clockCanvas = document.getElementById('clockCanvas');
+        const clockCtx = clockCanvas ? clockCanvas.getContext('2d') : null;
+        let clockInterval = null;
+        let lastWeatherFetchTime = 0;
+
+        // Bitmap phi hành gia 64x64 cho Canvas
+        const astroSpriteImg = document.createElement('canvas');
+        astroSpriteImg.width = 64;
+        astroSpriteImg.height = 64;
+        const astroCtx = astroSpriteImg.getContext('2d');
+
+        // Khởi tạo sprite phi hành gia
+        (function initAstroSprite() {
+            astroCtx.fillStyle = '#ffffff';
+            // Vẽ đầu, mũ bảo hộ, cơ thể, ba lô
+            astroCtx.beginPath();
+            astroCtx.ellipse(32, 28, 16, 16, 0, 0, Math.PI * 2);
+            astroCtx.lineWidth = 3;
+            astroCtx.strokeStyle = '#ffffff';
+            astroCtx.stroke();
+            
+            // Kính chắn gió mũ bảo hộ
+            astroCtx.fillStyle = '#0f172a';
+            astroCtx.beginPath();
+            astroCtx.ellipse(32, 28, 11, 9, 0, 0, Math.PI * 2);
+            astroCtx.fill();
+            astroCtx.strokeStyle = '#38bdf8';
+            astroCtx.lineWidth = 1.5;
+            astroCtx.stroke();
+            // Điểm sáng kính
+            astroCtx.fillStyle = '#ffffff';
+            astroCtx.beginPath();
+            astroCtx.ellipse(36, 25, 3, 2, 0, 0, Math.PI * 2);
+            astroCtx.fill();
+
+            // Thân và balo
+            astroCtx.strokeStyle = '#ffffff';
+            astroCtx.lineWidth = 3;
+            astroCtx.beginPath();
+            astroCtx.roundRect(24, 42, 16, 16, 4);
+            astroCtx.stroke();
+            // Balo phản lực
+            astroCtx.beginPath();
+            astroCtx.roundRect(16, 40, 7, 18, 3);
+            astroCtx.stroke();
+            // Tay và chân
+            astroCtx.beginPath();
+            astroCtx.moveTo(24, 46);
+            astroCtx.lineTo(16, 52);
+            astroCtx.moveTo(40, 46);
+            astroCtx.lineTo(46, 54);
+            astroCtx.moveTo(28, 58);
+            astroCtx.lineTo(26, 62);
+            astroCtx.moveTo(36, 58);
+            astroCtx.lineTo(38, 62);
+            astroCtx.stroke();
+        })();
+
+        // Hàm vẽ số điện tử bo góc (Hours / Minutes)
+        function drawCanvasClockDigit(ctx, x, y, digit, w, h, th, color, isHollow) {
+            const segs = [0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F];
+            const m = segs[digit] || 0;
+            const halfH = Math.floor(h / 2);
+            const r = 3;
+
+            if (digit === 0 && isHollow) {
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.roundRect(x, y, w, h, 6);
+                ctx.fill();
+                ctx.fillStyle = '#000000';
+                ctx.beginPath();
+                ctx.roundRect(x + th, y + th, w - 2 * th, h - 2 * th, 4);
+                ctx.fill();
+                return;
+            }
+
+            if (digit === 1) {
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.roundRect(x + Math.floor(w/2 - th/2), y, th, h, 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(x + Math.floor(w/2 - th/2), y);
+                ctx.lineTo(x + Math.floor(w/2 - th/2), y + 12);
+                ctx.lineTo(x + Math.floor(w/2 - th/2) - 8, y + 12);
+                ctx.fill();
+                return;
+            }
+
+            ctx.fillStyle = color;
+            function rect(rx, ry, rw, rh) {
+                ctx.beginPath();
+                ctx.roundRect(rx, ry, rw, rh, r);
+                ctx.fill();
+            }
+
+            if (m & 0x01) rect(x, y, w, th);                           // top
+            if (m & 0x02) rect(x + w - th, y, th, halfH + 1);          // top-right
+            if (m & 0x04) rect(x + w - th, y + halfH, th, halfH + 1);  // bottom-right
+            if (m & 0x08) rect(x, y + h - th, w, th);                  // bottom
+            if (m & 0x10) rect(x, y + halfH, th, halfH + 1);          // bottom-left
+            if (m & 0x20) rect(x, y, th, halfH + 1);                  // top-left
+            if (m & 0x40) rect(x, y + halfH - Math.floor(th/2), w, th);// middle
+        }
+
+        // Vẽ toàn bộ màn hình đồng hồ Canvas 240x240 theo thời gian thực
+        function renderLiveClockCanvas() {
+            if (!clockCtx) return;
+            const now = new Date();
+            let hours = now.getHours();
+            const minutes = now.getMinutes();
+            const seconds = now.getSeconds();
+            const is24H = document.getElementById('chk24HourFormat') ? document.getElementById('chk24HourFormat').checked : true;
+            if (!is24H) {
+                hours = hours % 12 || 12;
+            }
+
+            const city = (document.getElementById('clockCityInput') ? document.getElementById('clockCityInput').value : 'Seoul') || 'Seoul';
+            const country = (document.getElementById('clockCountryInput') ? document.getElementById('clockCountryInput').value : 'KR') || 'KR';
+            const temp = parseInt(document.getElementById('clockTempInput')?.value) || 14;
+            const maxTemp = parseInt(document.getElementById('clockMaxTempInput')?.value) || 18;
+            const humidity = parseInt(document.getElementById('clockHumidityInput')?.value) || 32;
+            const weather = document.getElementById('clockWeatherSelect')?.value || 'Clear';
+
+            // 0. Xóa nền đen tuyệt đối (chuẩn Hologram)
+            clockCtx.fillStyle = '#000000';
+            clockCtx.fillRect(0, 0, 240, 240);
+
+            // 1. Dòng 1: Thành phố (Vàng) & Huy hiệu Quốc gia (Xanh lá)
+            clockCtx.fillStyle = '#ffb703';
+            clockCtx.font = 'bold 18px system-ui, -apple-system, sans-serif';
+            clockCtx.textAlign = 'left';
+            clockCtx.textBaseline = 'top';
+            clockCtx.fillText(city, 12, 8);
+
+            const cityMetrics = clockCtx.measureText(city);
+            let badgeX = 12 + Math.min(cityMetrics.width + 8, 120);
+            clockCtx.fillStyle = '#70e000';
+            clockCtx.beginPath();
+            clockCtx.roundRect(badgeX, 7, 36, 18, 4);
+            clockCtx.fill();
+
+            clockCtx.fillStyle = '#000000';
+            clockCtx.font = 'bold 12px system-ui, sans-serif';
+            clockCtx.textAlign = 'center';
+            clockCtx.fillText(country, badgeX + 18, 10);
+
+            // Biểu tượng Mặt trời / Trăng
+            const realHour = now.getHours();
+            if (realHour >= 6 && realHour < 18) {
+                // Mặt trời cam đất
+                clockCtx.fillStyle = '#e07a5f';
+                clockCtx.beginPath();
+                clockCtx.arc(206, 18, 14, 0, Math.PI * 2);
+                clockCtx.fill();
+            } else {
+                // Mặt trăng khuyết
+                clockCtx.fillStyle = '#ffb703';
+                clockCtx.beginPath();
+                clockCtx.arc(206, 18, 14, 0, Math.PI * 2);
+                clockCtx.fill();
+                clockCtx.fillStyle = '#000000';
+                clockCtx.beginPath();
+                clockCtx.arc(200, 14, 12, 0, Math.PI * 2);
+                clockCtx.fill();
+            }
+
+            // 2. Dòng 2: Max temp
+            clockCtx.fillStyle = '#ffffff';
+            clockCtx.font = '13px system-ui, sans-serif';
+            clockCtx.textAlign = 'left';
+            clockCtx.fillText(`Max temp ${maxTemp}°C`, 12, 34);
+
+            // 3. Khối đồng hồ số khổng lồ (Hours: White, Minutes: Gold Outline)
+            const h1 = Math.floor(hours / 10);
+            const h2 = hours % 10;
+            const m1 = Math.floor(minutes / 10);
+            const m2 = minutes % 10;
+
+            drawCanvasClockDigit(clockCtx, 12, 58, h1, 26, 64, 7, '#ffffff', false);
+            drawCanvasClockDigit(clockCtx, 42, 58, h2, 26, 64, 7, '#ffffff', false);
+
+            // Dấu hai chấm (:)
+            clockCtx.fillStyle = '#ffffff';
+            clockCtx.fillRect(75, 74, 6, 8);
+            clockCtx.fillRect(75, 100, 6, 8);
+
+            // Minutes (Vàng cam viền rỗng)
+            drawCanvasClockDigit(clockCtx, 88, 58, m1, 26, 64, 7, '#ffb703', true);
+            drawCanvasClockDigit(clockCtx, 118, 58, m2, 26, 64, 7, '#ffb703', true);
+
+            // Huy hiệu thời tiết
+            clockCtx.fillStyle = '#ffffff';
+            clockCtx.beginPath();
+            clockCtx.roundRect(154, 56, 74, 22, 5);
+            clockCtx.fill();
+            clockCtx.fillStyle = '#14234b';
+            clockCtx.font = 'bold 13px system-ui, sans-serif';
+            clockCtx.textAlign = 'center';
+            clockCtx.fillText(weather, 191, 60);
+
+            // Số Giây (Seconds)
+            clockCtx.fillStyle = '#ffffff';
+            clockCtx.font = 'bold 28px Consolas, monospace';
+            clockCtx.textAlign = 'left';
+            const secStr = String(seconds).padStart(2, '0');
+            clockCtx.fillText(secStr, 170, 88);
+
+            // 4. Dòng 4: Ngày tháng & Thứ
+            const daysArr = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const dayStr = daysArr[now.getDay()];
+            const dateStr = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+
+            clockCtx.fillStyle = '#ffffff';
+            clockCtx.font = '14px system-ui, sans-serif';
+            clockCtx.fillText(dateStr, 12, 134);
+            clockCtx.fillStyle = '#70e000';
+            clockCtx.font = 'bold 14px system-ui, sans-serif';
+            clockCtx.fillText(dayStr, 118, 134);
+
+            // 5. Cột trái dưới: Thanh đo Nhiệt độ & Độ ẩm
+            // 5.1 Nhiệt độ
+            clockCtx.fillStyle = '#ef4444';
+            clockCtx.beginPath();
+            clockCtx.arc(17, 172, 5, 0, Math.PI * 2);
+            clockCtx.fill();
+            clockCtx.fillStyle = '#ffffff';
+            clockCtx.fillRect(15, 160, 4, 10);
+
+            // Thanh đo nhiệt độ
+            clockCtx.strokeStyle = '#475569';
+            clockCtx.lineWidth = 1.5;
+            clockCtx.beginPath();
+            clockCtx.roundRect(30, 165, 54, 10, 4);
+            clockCtx.stroke();
+            const tempFillW = Math.max(3, Math.min(50, Math.round((Math.max(0, temp) / 45) * 50)));
+            clockCtx.fillStyle = '#0082ff';
+            clockCtx.beginPath();
+            clockCtx.roundRect(32, 167, tempFillW, 6, 2);
+            clockCtx.fill();
+            clockCtx.fillStyle = '#ffffff';
+            clockCtx.font = 'bold 13px system-ui, sans-serif';
+            clockCtx.fillText(`${temp}°C`, 90, 163);
+
+            // 5.2 Độ ẩm
+            clockCtx.fillStyle = '#0082ff';
+            clockCtx.beginPath();
+            clockCtx.arc(17, 199, 4.5, 0, Math.PI * 2);
+            clockCtx.fill();
+            clockCtx.beginPath();
+            clockCtx.moveTo(17, 191);
+            clockCtx.lineTo(13, 198);
+            clockCtx.lineTo(21, 198);
+            clockCtx.fill();
+
+            // Thanh đo độ ẩm
+            clockCtx.strokeStyle = '#475569';
+            clockCtx.beginPath();
+            clockCtx.roundRect(30, 195, 54, 10, 4);
+            clockCtx.stroke();
+            const humFillW = Math.max(3, Math.min(50, Math.round((Math.max(0, Math.min(100, humidity)) / 100) * 50)));
+            clockCtx.fillStyle = '#ffdc32';
+            clockCtx.beginPath();
+            clockCtx.roundRect(32, 197, humFillW, 6, 2);
+            clockCtx.fill();
+            clockCtx.fillStyle = '#ffffff';
+            clockCtx.font = 'bold 13px system-ui, sans-serif';
+            clockCtx.fillText(`${humidity}%`, 90, 193);
+
+            // 6. Cột phải dưới: Phi hành gia nhấp nhô & Sao lấp lánh
+            const astroBob = Math.sin(Date.now() / 500) * 2;
+            clockCtx.drawImage(astroSpriteImg, 160, 155 + astroBob);
+
+            // Sao lấp lánh xung quanh phi hành gia
+            const starPhase = Math.floor(Date.now() / 400) % 4;
+            const stars = [
+                { x: 152, y: 165 },
+                { x: 230, y: 160 },
+                { x: 154, y: 222 },
+                { x: 226, y: 228 }
+            ];
+            stars.forEach((s, idx) => {
+                clockCtx.fillStyle = (idx === starPhase) ? '#00f2fe' : (idx === (starPhase + 2) % 4 ? '#ffffff' : 'rgba(255,255,255,0.2)');
+                clockCtx.fillRect(s.x, s.y, 2, 2);
+            });
+        }
+
+        // Lấy thời tiết thực tế từ Open-Meteo API
+        async function fetchRealWeather(lat, lon, cityName, countryCode) {
+            const badge = document.getElementById('weatherStatusBadge');
+            try {
+                if (badge) { badge.textContent = 'Đang tải thời tiết...'; badge.style.color = 'var(--accent)'; }
+                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code&daily=temperature_2m_max&timezone=auto`;
+                const res = await fetch(url);
+                const data = await res.json();
+                if (data && data.current) {
+                    const curTemp = Math.round(data.current.temperature_2m);
+                    const curHum = Math.round(data.current.relative_humidity_2m);
+                    const maxTemp = (data.daily && data.daily.temperature_2m_max && data.daily.temperature_2m_max[0] !== undefined)
+                        ? Math.round(data.daily.temperature_2m_max[0])
+                        : (curTemp + 4);
+                    const wCode = data.current.weather_code;
+                    let wText = "Clear";
+                    if (wCode >= 1 && wCode <= 3) wText = "Clouds";
+                    else if (wCode >= 45 && wCode <= 48) wText = "Fog";
+                    else if (wCode >= 51 && wCode <= 67) wText = "Rain";
+                    else if (wCode >= 71 && wCode <= 77) wText = "Snow";
+                    else if (wCode >= 80 && wCode <= 82) wText = "Showers";
+                    else if (wCode >= 95) wText = "Thunder";
+
+                    if (document.getElementById('clockTempInput')) document.getElementById('clockTempInput').value = curTemp;
+                    if (document.getElementById('clockMaxTempInput')) document.getElementById('clockMaxTempInput').value = maxTemp;
+                    if (document.getElementById('clockHumidityInput')) document.getElementById('clockHumidityInput').value = curHum;
+                    if (document.getElementById('clockWeatherSelect')) document.getElementById('clockWeatherSelect').value = wText;
+                    if (cityName && document.getElementById('clockCityInput')) document.getElementById('clockCityInput').value = cityName;
+                    if (countryCode && document.getElementById('clockCountryInput')) document.getElementById('clockCountryInput').value = countryCode;
+
+                    if (badge) { badge.textContent = `● Đã cập nhật (${curTemp}°C, ${wText})`; badge.style.color = 'var(--neon-green)'; }
+                    log(`Thời tiết ${cityName || 'Seoul'}: ${curTemp}°C, Độ ẩm ${curHum}%, Max ${maxTemp}°C, ${wText}`);
+                    lastWeatherFetchTime = Date.now();
+                }
+            } catch (err) {
+                console.warn('Weather fetch error:', err);
+                if (badge) { badge.textContent = '● Ngoại tuyến (Dùng số mặc định)'; badge.style.color = '#eab308'; }
+            }
+        }
+
+        // Khởi động Tab 4 & Sự kiện tương tác
+        function initClockTab() {
+            // Chạy vòng lặp render đồng hồ thời gian thực
+            if (clockInterval) clearInterval(clockInterval);
+            clockInterval = setInterval(renderLiveClockCanvas, 500);
+            renderLiveClockCanvas();
+
+            // Nút Chiếu Đồng Hồ Lên Cube
+            const btnPlayClock = document.getElementById('btnPlayClockOnCube');
+            if (btnPlayClock) {
+                btnPlayClock.addEventListener('click', () => {
+                    const city = document.getElementById('clockCityInput')?.value || 'Seoul';
+                    const country = document.getElementById('clockCountryInput')?.value || 'KR';
+                    const temp = parseInt(document.getElementById('clockTempInput')?.value) || 14;
+                    const maxTemp = parseInt(document.getElementById('clockMaxTempInput')?.value) || 18;
+                    const humidity = parseInt(document.getElementById('clockHumidityInput')?.value) || 32;
+                    const weather = document.getElementById('clockWeatherSelect')?.value || 'Clear';
+
+                    sendCommand({
+                        cmd: "clock",
+                        city: city,
+                        country: country,
+                        temp: temp,
+                        maxTemp: maxTemp,
+                        humidity: humidity,
+                        weather: weather,
+                        epoch: Math.floor(Date.now() / 1000),
+                        tz: -(new Date().getTimezoneOffset() / 60)
+                    });
+                    log(`Đã gửi lệnh chiếu Đồng Hồ Thời Gian Thực (${city}, ${temp}°C) lên Cube!`);
+                });
+            }
+
+            // Nút Đồng bộ thời gian & thời tiết
+            const btnSync = document.getElementById('btnSyncClockNow');
+            if (btnSync) {
+                btnSync.addEventListener('click', () => {
+                    const city = document.getElementById('clockCityInput')?.value || 'Seoul';
+                    const country = document.getElementById('clockCountryInput')?.value || 'KR';
+                    const temp = parseInt(document.getElementById('clockTempInput')?.value) || 14;
+                    const maxTemp = parseInt(document.getElementById('clockMaxTempInput')?.value) || 18;
+                    const humidity = parseInt(document.getElementById('clockHumidityInput')?.value) || 32;
+                    const weather = document.getElementById('clockWeatherSelect')?.value || 'Clear';
+
+                    sendCommand({
+                        cmd: "clock_sync",
+                        city: city,
+                        country: country,
+                        temp: temp,
+                        maxTemp: maxTemp,
+                        humidity: humidity,
+                        weather: weather,
+                        epoch: Math.floor(Date.now() / 1000)
+                    });
+                    log(`Đã đồng bộ giờ thiết bị & thời tiết sang Cube!`);
+                });
+            }
+
+            // Các nút chọn nhanh thành phố
+            document.querySelectorAll('.btn-city').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const city = btn.dataset.city;
+                    const country = btn.dataset.country;
+                    const lat = parseFloat(btn.dataset.lat);
+                    const lon = parseFloat(btn.dataset.lon);
+                    document.getElementById('clockCityInput').value = city;
+                    document.getElementById('clockCountryInput').value = country;
+                    fetchRealWeather(lat, lon, city, country);
+                });
+            });
+
+            // Nút lấy vị trí hiện tại (GPS / Geolocation)
+            const btnGeo = document.getElementById('btnAutoGeoLocation');
+            if (btnGeo) {
+                btnGeo.addEventListener('click', () => {
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(
+                            pos => {
+                                fetchRealWeather(pos.coords.latitude, pos.coords.longitude, "Vị trí của bạn", "VN");
+                            },
+                            err => {
+                                log("Không thể lấy GPS, đang dùng vị trí mặc định TP.HCM");
+                                fetchRealWeather(10.8231, 106.6297, "TP.HCM", "VN");
+                            }
+                        );
+                    } else {
+                        fetchRealWeather(10.8231, 106.6297, "TP.HCM", "VN");
+                    }
+                });
+            }
+
+            // Nút Refresh thời tiết
+            const btnRefresh = document.getElementById('btnRefreshWeather');
+            if (btnRefresh) {
+                btnRefresh.addEventListener('click', () => {
+                    const city = document.getElementById('clockCityInput')?.value || 'Seoul';
+                    if (city.toLowerCase().includes('hcm') || city.toLowerCase().includes('hồ chí minh')) {
+                        fetchRealWeather(10.8231, 106.6297, "TP.HCM", "VN");
+                    } else if (city.toLowerCase().includes('hà nội') || city.toLowerCase().includes('hanoi')) {
+                        fetchRealWeather(21.0285, 105.8542, "Hà Nội", "VN");
+                    } else if (city.toLowerCase().includes('đà nẵng') || city.toLowerCase().includes('danang')) {
+                        fetchRealWeather(16.0544, 108.2022, "Đà Nẵng", "VN");
+                    } else if (city.toLowerCase().includes('tokyo')) {
+                        fetchRealWeather(35.6762, 139.6503, "Tokyo", "JP");
+                    } else {
+                        fetchRealWeather(37.5665, 126.9780, "Seoul", "KR");
+                    }
+                });
+            }
+
+            // Tự động đồng bộ mỗi 10 phút sang Cube nếu đang mở web
+            setInterval(() => {
+                const autoSync = document.getElementById('chkAutoSyncClock');
+                if (autoSync && autoSync.checked && (typeof isConnected !== 'undefined' && isConnected)) {
+                    const city = document.getElementById('clockCityInput')?.value || 'Seoul';
+                    const country = document.getElementById('clockCountryInput')?.value || 'KR';
+                    const temp = parseInt(document.getElementById('clockTempInput')?.value) || 14;
+                    const maxTemp = parseInt(document.getElementById('clockMaxTempInput')?.value) || 18;
+                    const humidity = parseInt(document.getElementById('clockHumidityInput')?.value) || 32;
+                    const weather = document.getElementById('clockWeatherSelect')?.value || 'Clear';
+
+                    sendCommand({
+                        cmd: "clock_sync",
+                        city: city,
+                        country: country,
+                        temp: temp,
+                        maxTemp: maxTemp,
+                        humidity: humidity,
+                        weather: weather,
+                        epoch: Math.floor(Date.now() / 1000)
+                    });
+                }
+            }, 600000);
+        }
+
+        // Gọi khởi tạo Tab đồng hồ khi trang web tải xong
+        setTimeout(initClockTab, 300);
+
+    </script>
 </head>
 
 <body>
@@ -875,7 +1815,7 @@
             <span style="font-size: 1.5rem;">✨</span>
             <div>
                 <h1>Cube <span>3D Studio</span></h1>
-                <p style="font-size: 0.75rem; color: var(--text-dim);">TFT 2.4" 240x320 Remote Canvas & Smart Cropper
+                <p style="font-size: 0.75rem; color: var(--text-dim);">TFT 1.54" 240x240 ST7789 • ESP32-S3 &amp; MicroSD
                 </p>
             </div>
         </div>
@@ -901,7 +1841,7 @@
         <button class="tab-btn active" data-tab="paintTab">🎨 Bảng vẽ Paint</button>
         <button class="tab-btn" data-tab="cropTab">🖼️ Xuất ảnh & Cắt chuẩn (Không méo)</button>
         <button class="tab-btn" data-tab="gifTab">👾 Chiếu Hologram GIF</button>
-        <button class="tab-btn" data-tab="remoteTab">🌐 Kết nối từ xa (4G / WAN)</button>
+        <button class="tab-btn" data-tab="clockTab">⏰ Đồng hồ Điện tử &amp; Thời tiết</button>
     </div>
 
     <!-- TAB 1: PAINT -->
@@ -1319,38 +2259,132 @@
             </div>
         </div>
     </div>
-    <!-- TAB 4: REMOTE WAN GUIDE -->
-    <div id="remoteTab" class="main-container" style="display: none;">
-        <div class="card" style="width: 100%; display: flex; flex-direction: column; gap: 14px;">
-            <div style="border-bottom: 1px solid var(--border); padding-bottom: 10px;">
-                <h2 style="font-size: 1.1rem; color: var(--accent);">🌐 Hướng dẫn vẽ từ xa qua 4G (Không cần máy tính /
-                    VPS)</h2>
-                <p style="font-size: 0.8rem; color: var(--text-dim);">Công nghệ Cloud Broker miễn phí của HiveMQ giúp
-                    bạn ở bất kỳ đâu trên thế giới cũng điều khiển được màn hình ở nhà.</p>
+        <!-- TAB 4: REAL-TIME DIGITAL CLOCK & WEATHER STATION -->
+    <div id="clockTab" class="main-container" style="display: none;">
+        <div class="crop-workspace card" style="width: 100%;">
+            <!-- Left: Live Clock Preview Screen -->
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                <div class="canvas-container-outer" style="max-width: 280px;">
+                    <div class="canvas-hud-header" style="max-width: 280px;">
+                        <span class="hud-tag">⬛ ĐỒNG HỒ 240×240</span>
+                        <span style="color: var(--neon-green); font-weight: bold;">LIVE REAL-TIME</span>
+                        <span class="hud-ratio">HOLOGRAM</span>
+                    </div>
+                    <div class="canvas-wrapper" style="max-width: 280px; aspect-ratio: 1/1; position: relative; background: #000; border: 4px solid var(--accent); border-radius: 12px; box-shadow: 0 0 25px rgba(0, 242, 254, 0.35);">
+                        <canvas id="clockCanvas" width="240" height="240" style="display: block; width: 100%; height: 100%; image-rendering: pixelated;"></canvas>
+                    </div>
+                    <div class="canvas-hud-footer" style="max-width: 280px;">
+                        <span>Trạm Không Gian &amp; Thời Tiết</span>
+                        <span id="clockFpsCounter">1 FPS Tick</span>
+                    </div>
+                </div>
+
+                <div style="width: 100%; max-width: 280px; display: flex; flex-direction: column; gap: 8px; margin-top: 4px;">
+                    <button id="btnPlayClockOnCube" class="btn" style="width: 100%; min-height: 46px; font-size: 0.95rem; font-weight: bold; background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); color: #000; box-shadow: 0 0 16px rgba(0, 242, 254, 0.45);">
+                        🚀 Chiếu Đồng Hồ Lên Cube
+                    </button>
+                    <button id="btnSyncClockNow" class="btn btn-secondary" style="width: 100%; min-height: 38px; font-size: 0.82rem;">
+                        🔄 Đồng bộ Giờ &amp; Thời tiết sang Cube
+                    </button>
+                </div>
             </div>
 
-            <div style="display: flex; flex-direction: column; gap: 12px; font-size: 0.85rem; line-height: 1.6;">
-                <div
-                    style="background: var(--bg-card); padding: 12px 16px; border-radius: 8px; border-left: 4px solid var(--accent);">
-                    <strong style="color: var(--accent); font-size: 0.95rem;">Bước 1: Cắm nguồn Cube ở nhà</strong>
-                    <p style="color: var(--text-dim); margin-top: 4px;">Chỉ cần cắm nguồn 5V cho Cube và đảm bảo Cube đã
-                        kết nối Wi-Fi nhà. Màn hình TFT sẽ hiện dòng chữ màu vàng: <b>MÃ KẾT NỐI 4G: HOLO-FD9C</b>.</p>
+            <!-- Right: Settings & Real-time Weather -->
+            <div style="flex: 1; min-width: 280px; display: flex; flex-direction: column; gap: 12px;">
+                <!-- Vị trí & Thành phố nhanh -->
+                <div style="background: var(--bg-card); padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <strong style="font-size: 0.88rem; color: var(--accent);">🏙️ Chọn Vị Trí &amp; Thời Tiết:</strong>
+                        <span id="weatherStatusBadge" style="font-size: 0.72rem; color: var(--neon-green);">● Sẵn sàng</span>
+                    </div>
+
+                    <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                        <button type="button" class="btn btn-secondary btn-city" data-city="Seoul" data-country="KR" data-lat="37.5665" data-lon="126.9780" style="padding: 6px 10px; font-size: 0.78rem;">🇰🇷 Seoul</button>
+                        <button type="button" class="btn btn-secondary btn-city" data-city="TP.HCM" data-country="VN" data-lat="10.8231" data-lon="106.6297" style="padding: 6px 10px; font-size: 0.78rem;">🇻🇳 TP.HCM</button>
+                        <button type="button" class="btn btn-secondary btn-city" data-city="Hà Nội" data-country="VN" data-lat="21.0285" data-lon="105.8542" style="padding: 6px 10px; font-size: 0.78rem;">🇻🇳 Hà Nội</button>
+                        <button type="button" class="btn btn-secondary btn-city" data-city="Đà Nẵng" data-country="VN" data-lat="16.0544" data-lon="108.2022" style="padding: 6px 10px; font-size: 0.78rem;">🇻🇳 Đà Nẵng</button>
+                        <button type="button" class="btn btn-secondary btn-city" data-city="Tokyo" data-country="JP" data-lat="35.6762" data-lon="139.6503" style="padding: 6px 10px; font-size: 0.78rem;">🇯🇵 Tokyo</button>
+                        <button type="button" class="btn btn-secondary" id="btnAutoGeoLocation" style="padding: 6px 10px; font-size: 0.78rem; background: rgba(0, 242, 254, 0.15); color: var(--accent); border-color: var(--accent);">📍 Vị trí hiện tại (GPS)</button>
+                    </div>
+
+                    <!-- Ô nhập tùy chỉnh -->
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 8px; margin-top: 4px;">
+                        <div>
+                            <label style="font-size: 0.75rem; color: var(--text-dim);">Tên thành phố:</label>
+                            <input type="text" id="clockCityInput" class="ws-input" value="Seoul" style="width: 100%; box-sizing: border-box; padding: 6px 8px; font-size: 0.85rem;">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.75rem; color: var(--text-dim);">Quốc gia:</label>
+                            <input type="text" id="clockCountryInput" class="ws-input" value="KR" maxlength="4" style="width: 100%; box-sizing: border-box; padding: 6px 8px; font-size: 0.85rem;">
+                        </div>
+                    </div>
                 </div>
 
-                <div
-                    style="background: var(--bg-card); padding: 12px 16px; border-radius: 8px; border-left: 4px solid #3b82f6;">
-                    <strong style="color: #60a5fa; font-size: 0.95rem;">Bước 2: Mở Web trên điện thoại dùng 4G</strong>
-                    <p style="color: var(--text-dim); margin-top: 4px;">Mở trang web này trên điện thoại (ngoài đường,
-                        cơ quan...). Ở thanh kết nối trên cùng, chọn <b>🌐 Cloud 4G (HiveMQ)</b> và gõ đúng mã thiết bị
-                        (Ví dụ: <code>HOLO-FD9C</code>).</p>
+                <!-- Dữ liệu thời tiết trực tiếp -->
+                <div style="background: var(--bg-card); padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <strong style="font-size: 0.88rem; color: var(--text-main);">🌡️ Thông Số Thời Tiết (Tự động cập nhật):</strong>
+                        <button id="btnRefreshWeather" class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.75rem;">⚡ Lấy lại thời tiết</button>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                        <div>
+                            <label style="font-size: 0.75rem; color: var(--text-dim);">Nhiệt độ hiện tại:</label>
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <input type="number" id="clockTempInput" class="ws-input" value="14" style="width: 100%; box-sizing: border-box; padding: 6px 8px; font-size: 0.85rem;">
+                                <span style="font-size: 0.85rem; color: var(--text-dim);">°C</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.75rem; color: var(--text-dim);">Nhiệt độ cao nhất (Max):</label>
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <input type="number" id="clockMaxTempInput" class="ws-input" value="18" style="width: 100%; box-sizing: border-box; padding: 6px 8px; font-size: 0.85rem;">
+                                <span style="font-size: 0.85rem; color: var(--text-dim);">°C</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.75rem; color: var(--text-dim);">Độ ẩm không khí:</label>
+                            <div style="display: flex; align-items: center; gap: 4px;">
+                                <input type="number" id="clockHumidityInput" class="ws-input" value="32" min="0" max="100" style="width: 100%; box-sizing: border-box; padding: 6px 8px; font-size: 0.85rem;">
+                                <span style="font-size: 0.85rem; color: var(--text-dim);">%</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.75rem; color: var(--text-dim);">Trạng thái trời:</label>
+                            <select id="clockWeatherSelect" style="background: var(--bg-secondary); color: var(--accent); border: 1px solid var(--border); padding: 7px 8px; border-radius: 6px; font-size: 0.82rem; width: 100%; box-sizing: border-box; outline: none;">
+                                <option value="Clear" selected>☀️ Clear (Trời quang)</option>
+                                <option value="Clouds">☁️ Clouds (Nhiều mây)</option>
+                                <option value="Rain">🌧️ Rain (Có mưa)</option>
+                                <option value="Showers">🌦️ Showers (Mưa rào)</option>
+                                <option value="Thunder">⚡ Thunder (Sấm chớp)</option>
+                                <option value="Fog">🌫️ Fog (Sương mù)</option>
+                                <option value="Snow">❄️ Snow (Tuyết rơi)</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
-                <div
-                    style="background: var(--bg-card); padding: 12px 16px; border-radius: 8px; border-left: 4px solid #f59e0b;">
-                    <strong style="color: #fbbf24; font-size: 0.95rem;">Bước 3: Bấm [Kết nối] và vẽ ngay!</strong>
-                    <p style="color: var(--text-dim); margin-top: 4px;">Khi nút chuyển thành <b>Cloud: HOLO-FD9C</b> màu
-                        xanh, bạn có thể vẽ nét trực tiếp hoặc cắt ảnh gửi về nhà tức thì!</p>
+                <!-- Tùy chọn đồng bộ tự động -->
+                <div style="background: var(--bg-card); padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px;">
+                    <label style="font-size: 0.82rem; color: var(--text-main); display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="chkAutoSyncClock" checked style="accent-color: var(--accent); width: 18px; height: 18px;">
+                        <span>⏱️ Tự động đồng bộ giờ thiết bị &amp; thời tiết sang Cube mỗi 10 phút</span>
+                    </label>
+                    <label style="font-size: 0.82rem; color: var(--text-main); display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="chk24HourFormat" checked style="accent-color: var(--accent); width: 18px; height: 18px;">
+                        <span>🕒 Định dạng 24 Giờ (24-Hour Format)</span>
+                    </label>
                 </div>
+
+                <!-- Accordion Hướng dẫn 4G (Bảo tồn hướng dẫn) -->
+                <details style="background: var(--bg-card); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); cursor: pointer;">
+                    <summary style="font-size: 0.82rem; font-weight: 600; color: var(--accent);">🌐 Hướng dẫn điều khiển từ xa qua 4G (HiveMQ)</summary>
+                    <div style="font-size: 0.8rem; color: var(--text-dim); margin-top: 8px; line-height: 1.6; display: flex; flex-direction: column; gap: 6px;">
+                        <p>1. Cắm nguồn Cube ở nhà, Cube tự động kết nối Wi-Fi và Cloud MQTT.</p>
+                        <p>2. Mở Web trên điện thoại dùng 4G, ở thanh kết nối trên cùng chọn <b>Cloud 4G (HiveMQ)</b>.</p>
+                        <p>3. Nhập mã thiết bị (Ví dụ: <code>HOLO-B1D8</code>) và bấm <b>Kết nối</b> để vẽ, đổi ảnh hoặc chuyển đồng hồ từ xa!</p>
+                    </div>
+                </details>
             </div>
         </div>
     </div>
@@ -1959,8 +2993,8 @@
 
         function updateInputPlaceholder() {
             if (currentConnType === 'cloud') {
-                connInput.placeholder = "Mã thiết bị Cube (VD: HOLO-FD9C)";
-                connInput.value = localStorage.getItem('hologram_device_id') || 'HOLO-FD9C';
+                connInput.placeholder = "Mã thiết bị Cube (VD: HOLO-B1D8)";
+                connInput.value = localStorage.getItem('hologram_device_id') || 'HOLO-B1D8';
             } else {
                 connInput.placeholder = "ws://192.168.x.x:81";
                 if (localStorage.getItem('hologram_ws_url')) {
@@ -1974,7 +3008,7 @@
         }
 
         function getDeviceId() {
-            return (connInput.value.trim().toUpperCase()) || 'HOLO-FD9C';
+            return (connInput.value.trim().toUpperCase()) || 'HOLO-B1D8';
         }
 
         function isConnected() {
@@ -3847,7 +4881,7 @@
                 connInput.value = localStorage.getItem('hologram_last_ip') || hostIp;
                 connectLocalWs();
             } else {
-                connInput.value = localStorage.getItem('hologram_device_id') || 'HOLO-FD9C';
+                connInput.value = localStorage.getItem('hologram_device_id') || 'HOLO-B1D8';
                 connect();
             }
         }, 200);
@@ -3895,6 +4929,476 @@
 
         if (btnToggleColorOrder) btnToggleColorOrder.addEventListener('click', toggleColorOrder);
         if (btnTab2ColorToggle) btnTab2ColorToggle.addEventListener('click', toggleColorOrder);
+
+    
+        // ====================================================================
+        // TAB 4: REAL-TIME DIGITAL CLOCK & SPACE WEATHER STATION
+        // ====================================================================
+        const clockCanvas = document.getElementById('clockCanvas');
+        const clockCtx = clockCanvas ? clockCanvas.getContext('2d') : null;
+        let clockInterval = null;
+        let lastWeatherFetchTime = 0;
+
+        // Bitmap phi hành gia 64x64 cho Canvas
+        const astroSpriteImg = document.createElement('canvas');
+        astroSpriteImg.width = 64;
+        astroSpriteImg.height = 64;
+        const astroCtx = astroSpriteImg.getContext('2d');
+
+        // Khởi tạo sprite phi hành gia
+        (function initAstroSprite() {
+            astroCtx.fillStyle = '#ffffff';
+            // Vẽ đầu, mũ bảo hộ, cơ thể, ba lô
+            astroCtx.beginPath();
+            astroCtx.ellipse(32, 28, 16, 16, 0, 0, Math.PI * 2);
+            astroCtx.lineWidth = 3;
+            astroCtx.strokeStyle = '#ffffff';
+            astroCtx.stroke();
+            
+            // Kính chắn gió mũ bảo hộ
+            astroCtx.fillStyle = '#0f172a';
+            astroCtx.beginPath();
+            astroCtx.ellipse(32, 28, 11, 9, 0, 0, Math.PI * 2);
+            astroCtx.fill();
+            astroCtx.strokeStyle = '#38bdf8';
+            astroCtx.lineWidth = 1.5;
+            astroCtx.stroke();
+            // Điểm sáng kính
+            astroCtx.fillStyle = '#ffffff';
+            astroCtx.beginPath();
+            astroCtx.ellipse(36, 25, 3, 2, 0, 0, Math.PI * 2);
+            astroCtx.fill();
+
+            // Thân và balo
+            astroCtx.strokeStyle = '#ffffff';
+            astroCtx.lineWidth = 3;
+            astroCtx.beginPath();
+            astroCtx.roundRect(24, 42, 16, 16, 4);
+            astroCtx.stroke();
+            // Balo phản lực
+            astroCtx.beginPath();
+            astroCtx.roundRect(16, 40, 7, 18, 3);
+            astroCtx.stroke();
+            // Tay và chân
+            astroCtx.beginPath();
+            astroCtx.moveTo(24, 46);
+            astroCtx.lineTo(16, 52);
+            astroCtx.moveTo(40, 46);
+            astroCtx.lineTo(46, 54);
+            astroCtx.moveTo(28, 58);
+            astroCtx.lineTo(26, 62);
+            astroCtx.moveTo(36, 58);
+            astroCtx.lineTo(38, 62);
+            astroCtx.stroke();
+        })();
+
+        // Hàm vẽ số điện tử bo góc (Hours / Minutes)
+        function drawCanvasClockDigit(ctx, x, y, digit, w, h, th, color, isHollow) {
+            const segs = [0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F];
+            const m = segs[digit] || 0;
+            const halfH = Math.floor(h / 2);
+            const r = 3;
+
+            if (digit === 0 && isHollow) {
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.roundRect(x, y, w, h, 6);
+                ctx.fill();
+                ctx.fillStyle = '#000000';
+                ctx.beginPath();
+                ctx.roundRect(x + th, y + th, w - 2 * th, h - 2 * th, 4);
+                ctx.fill();
+                return;
+            }
+
+            if (digit === 1) {
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.roundRect(x + Math.floor(w/2 - th/2), y, th, h, 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(x + Math.floor(w/2 - th/2), y);
+                ctx.lineTo(x + Math.floor(w/2 - th/2), y + 12);
+                ctx.lineTo(x + Math.floor(w/2 - th/2) - 8, y + 12);
+                ctx.fill();
+                return;
+            }
+
+            ctx.fillStyle = color;
+            function rect(rx, ry, rw, rh) {
+                ctx.beginPath();
+                ctx.roundRect(rx, ry, rw, rh, r);
+                ctx.fill();
+            }
+
+            if (m & 0x01) rect(x, y, w, th);                           // top
+            if (m & 0x02) rect(x + w - th, y, th, halfH + 1);          // top-right
+            if (m & 0x04) rect(x + w - th, y + halfH, th, halfH + 1);  // bottom-right
+            if (m & 0x08) rect(x, y + h - th, w, th);                  // bottom
+            if (m & 0x10) rect(x, y + halfH, th, halfH + 1);          // bottom-left
+            if (m & 0x20) rect(x, y, th, halfH + 1);                  // top-left
+            if (m & 0x40) rect(x, y + halfH - Math.floor(th/2), w, th);// middle
+        }
+
+        // Vẽ toàn bộ màn hình đồng hồ Canvas 240x240 theo thời gian thực
+        function renderLiveClockCanvas() {
+            if (!clockCtx) return;
+            const now = new Date();
+            let hours = now.getHours();
+            const minutes = now.getMinutes();
+            const seconds = now.getSeconds();
+            const is24H = document.getElementById('chk24HourFormat') ? document.getElementById('chk24HourFormat').checked : true;
+            if (!is24H) {
+                hours = hours % 12 || 12;
+            }
+
+            const city = (document.getElementById('clockCityInput') ? document.getElementById('clockCityInput').value : 'Seoul') || 'Seoul';
+            const country = (document.getElementById('clockCountryInput') ? document.getElementById('clockCountryInput').value : 'KR') || 'KR';
+            const temp = parseInt(document.getElementById('clockTempInput')?.value) || 14;
+            const maxTemp = parseInt(document.getElementById('clockMaxTempInput')?.value) || 18;
+            const humidity = parseInt(document.getElementById('clockHumidityInput')?.value) || 32;
+            const weather = document.getElementById('clockWeatherSelect')?.value || 'Clear';
+
+            // 0. Xóa nền đen tuyệt đối (chuẩn Hologram)
+            clockCtx.fillStyle = '#000000';
+            clockCtx.fillRect(0, 0, 240, 240);
+
+            // 1. Dòng 1: Thành phố (Vàng) & Huy hiệu Quốc gia (Xanh lá)
+            clockCtx.fillStyle = '#ffb703';
+            clockCtx.font = 'bold 18px system-ui, -apple-system, sans-serif';
+            clockCtx.textAlign = 'left';
+            clockCtx.textBaseline = 'top';
+            clockCtx.fillText(city, 12, 8);
+
+            const cityMetrics = clockCtx.measureText(city);
+            let badgeX = 12 + Math.min(cityMetrics.width + 8, 120);
+            clockCtx.fillStyle = '#70e000';
+            clockCtx.beginPath();
+            clockCtx.roundRect(badgeX, 7, 36, 18, 4);
+            clockCtx.fill();
+
+            clockCtx.fillStyle = '#000000';
+            clockCtx.font = 'bold 12px system-ui, sans-serif';
+            clockCtx.textAlign = 'center';
+            clockCtx.fillText(country, badgeX + 18, 10);
+
+            // Biểu tượng Mặt trời / Trăng
+            const realHour = now.getHours();
+            if (realHour >= 6 && realHour < 18) {
+                // Mặt trời cam đất
+                clockCtx.fillStyle = '#e07a5f';
+                clockCtx.beginPath();
+                clockCtx.arc(206, 18, 14, 0, Math.PI * 2);
+                clockCtx.fill();
+            } else {
+                // Mặt trăng khuyết
+                clockCtx.fillStyle = '#ffb703';
+                clockCtx.beginPath();
+                clockCtx.arc(206, 18, 14, 0, Math.PI * 2);
+                clockCtx.fill();
+                clockCtx.fillStyle = '#000000';
+                clockCtx.beginPath();
+                clockCtx.arc(200, 14, 12, 0, Math.PI * 2);
+                clockCtx.fill();
+            }
+
+            // 2. Dòng 2: Max temp
+            clockCtx.fillStyle = '#ffffff';
+            clockCtx.font = '13px system-ui, sans-serif';
+            clockCtx.textAlign = 'left';
+            clockCtx.fillText(`Max temp ${maxTemp}°C`, 12, 34);
+
+            // 3. Khối đồng hồ số khổng lồ (Hours: White, Minutes: Gold Outline)
+            const h1 = Math.floor(hours / 10);
+            const h2 = hours % 10;
+            const m1 = Math.floor(minutes / 10);
+            const m2 = minutes % 10;
+
+            drawCanvasClockDigit(clockCtx, 12, 58, h1, 26, 64, 7, '#ffffff', false);
+            drawCanvasClockDigit(clockCtx, 42, 58, h2, 26, 64, 7, '#ffffff', false);
+
+            // Dấu hai chấm (:)
+            clockCtx.fillStyle = '#ffffff';
+            clockCtx.fillRect(75, 74, 6, 8);
+            clockCtx.fillRect(75, 100, 6, 8);
+
+            // Minutes (Vàng cam viền rỗng)
+            drawCanvasClockDigit(clockCtx, 88, 58, m1, 26, 64, 7, '#ffb703', true);
+            drawCanvasClockDigit(clockCtx, 118, 58, m2, 26, 64, 7, '#ffb703', true);
+
+            // Huy hiệu thời tiết
+            clockCtx.fillStyle = '#ffffff';
+            clockCtx.beginPath();
+            clockCtx.roundRect(154, 56, 74, 22, 5);
+            clockCtx.fill();
+            clockCtx.fillStyle = '#14234b';
+            clockCtx.font = 'bold 13px system-ui, sans-serif';
+            clockCtx.textAlign = 'center';
+            clockCtx.fillText(weather, 191, 60);
+
+            // Số Giây (Seconds)
+            clockCtx.fillStyle = '#ffffff';
+            clockCtx.font = 'bold 28px Consolas, monospace';
+            clockCtx.textAlign = 'left';
+            const secStr = String(seconds).padStart(2, '0');
+            clockCtx.fillText(secStr, 170, 88);
+
+            // 4. Dòng 4: Ngày tháng & Thứ
+            const daysArr = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const dayStr = daysArr[now.getDay()];
+            const dateStr = `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
+
+            clockCtx.fillStyle = '#ffffff';
+            clockCtx.font = '14px system-ui, sans-serif';
+            clockCtx.fillText(dateStr, 12, 134);
+            clockCtx.fillStyle = '#70e000';
+            clockCtx.font = 'bold 14px system-ui, sans-serif';
+            clockCtx.fillText(dayStr, 118, 134);
+
+            // 5. Cột trái dưới: Thanh đo Nhiệt độ & Độ ẩm
+            // 5.1 Nhiệt độ
+            clockCtx.fillStyle = '#ef4444';
+            clockCtx.beginPath();
+            clockCtx.arc(17, 172, 5, 0, Math.PI * 2);
+            clockCtx.fill();
+            clockCtx.fillStyle = '#ffffff';
+            clockCtx.fillRect(15, 160, 4, 10);
+
+            // Thanh đo nhiệt độ
+            clockCtx.strokeStyle = '#475569';
+            clockCtx.lineWidth = 1.5;
+            clockCtx.beginPath();
+            clockCtx.roundRect(30, 165, 54, 10, 4);
+            clockCtx.stroke();
+            const tempFillW = Math.max(3, Math.min(50, Math.round((Math.max(0, temp) / 45) * 50)));
+            clockCtx.fillStyle = '#0082ff';
+            clockCtx.beginPath();
+            clockCtx.roundRect(32, 167, tempFillW, 6, 2);
+            clockCtx.fill();
+            clockCtx.fillStyle = '#ffffff';
+            clockCtx.font = 'bold 13px system-ui, sans-serif';
+            clockCtx.fillText(`${temp}°C`, 90, 163);
+
+            // 5.2 Độ ẩm
+            clockCtx.fillStyle = '#0082ff';
+            clockCtx.beginPath();
+            clockCtx.arc(17, 199, 4.5, 0, Math.PI * 2);
+            clockCtx.fill();
+            clockCtx.beginPath();
+            clockCtx.moveTo(17, 191);
+            clockCtx.lineTo(13, 198);
+            clockCtx.lineTo(21, 198);
+            clockCtx.fill();
+
+            // Thanh đo độ ẩm
+            clockCtx.strokeStyle = '#475569';
+            clockCtx.beginPath();
+            clockCtx.roundRect(30, 195, 54, 10, 4);
+            clockCtx.stroke();
+            const humFillW = Math.max(3, Math.min(50, Math.round((Math.max(0, Math.min(100, humidity)) / 100) * 50)));
+            clockCtx.fillStyle = '#ffdc32';
+            clockCtx.beginPath();
+            clockCtx.roundRect(32, 197, humFillW, 6, 2);
+            clockCtx.fill();
+            clockCtx.fillStyle = '#ffffff';
+            clockCtx.font = 'bold 13px system-ui, sans-serif';
+            clockCtx.fillText(`${humidity}%`, 90, 193);
+
+            // 6. Cột phải dưới: Phi hành gia nhấp nhô & Sao lấp lánh
+            const astroBob = Math.sin(Date.now() / 500) * 2;
+            clockCtx.drawImage(astroSpriteImg, 160, 155 + astroBob);
+
+            // Sao lấp lánh xung quanh phi hành gia
+            const starPhase = Math.floor(Date.now() / 400) % 4;
+            const stars = [
+                { x: 152, y: 165 },
+                { x: 230, y: 160 },
+                { x: 154, y: 222 },
+                { x: 226, y: 228 }
+            ];
+            stars.forEach((s, idx) => {
+                clockCtx.fillStyle = (idx === starPhase) ? '#00f2fe' : (idx === (starPhase + 2) % 4 ? '#ffffff' : 'rgba(255,255,255,0.2)');
+                clockCtx.fillRect(s.x, s.y, 2, 2);
+            });
+        }
+
+        // Lấy thời tiết thực tế từ Open-Meteo API
+        async function fetchRealWeather(lat, lon, cityName, countryCode) {
+            const badge = document.getElementById('weatherStatusBadge');
+            try {
+                if (badge) { badge.textContent = 'Đang tải thời tiết...'; badge.style.color = 'var(--accent)'; }
+                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code&daily=temperature_2m_max&timezone=auto`;
+                const res = await fetch(url);
+                const data = await res.json();
+                if (data && data.current) {
+                    const curTemp = Math.round(data.current.temperature_2m);
+                    const curHum = Math.round(data.current.relative_humidity_2m);
+                    const maxTemp = (data.daily && data.daily.temperature_2m_max && data.daily.temperature_2m_max[0] !== undefined)
+                        ? Math.round(data.daily.temperature_2m_max[0])
+                        : (curTemp + 4);
+                    const wCode = data.current.weather_code;
+                    let wText = "Clear";
+                    if (wCode >= 1 && wCode <= 3) wText = "Clouds";
+                    else if (wCode >= 45 && wCode <= 48) wText = "Fog";
+                    else if (wCode >= 51 && wCode <= 67) wText = "Rain";
+                    else if (wCode >= 71 && wCode <= 77) wText = "Snow";
+                    else if (wCode >= 80 && wCode <= 82) wText = "Showers";
+                    else if (wCode >= 95) wText = "Thunder";
+
+                    if (document.getElementById('clockTempInput')) document.getElementById('clockTempInput').value = curTemp;
+                    if (document.getElementById('clockMaxTempInput')) document.getElementById('clockMaxTempInput').value = maxTemp;
+                    if (document.getElementById('clockHumidityInput')) document.getElementById('clockHumidityInput').value = curHum;
+                    if (document.getElementById('clockWeatherSelect')) document.getElementById('clockWeatherSelect').value = wText;
+                    if (cityName && document.getElementById('clockCityInput')) document.getElementById('clockCityInput').value = cityName;
+                    if (countryCode && document.getElementById('clockCountryInput')) document.getElementById('clockCountryInput').value = countryCode;
+
+                    if (badge) { badge.textContent = `● Đã cập nhật (${curTemp}°C, ${wText})`; badge.style.color = 'var(--neon-green)'; }
+                    log(`Thời tiết ${cityName || 'Seoul'}: ${curTemp}°C, Độ ẩm ${curHum}%, Max ${maxTemp}°C, ${wText}`);
+                    lastWeatherFetchTime = Date.now();
+                }
+            } catch (err) {
+                console.warn('Weather fetch error:', err);
+                if (badge) { badge.textContent = '● Ngoại tuyến (Dùng số mặc định)'; badge.style.color = '#eab308'; }
+            }
+        }
+
+        // Khởi động Tab 4 & Sự kiện tương tác
+        function initClockTab() {
+            // Chạy vòng lặp render đồng hồ thời gian thực
+            if (clockInterval) clearInterval(clockInterval);
+            clockInterval = setInterval(renderLiveClockCanvas, 500);
+            renderLiveClockCanvas();
+
+            // Nút Chiếu Đồng Hồ Lên Cube
+            const btnPlayClock = document.getElementById('btnPlayClockOnCube');
+            if (btnPlayClock) {
+                btnPlayClock.addEventListener('click', () => {
+                    const city = document.getElementById('clockCityInput')?.value || 'Seoul';
+                    const country = document.getElementById('clockCountryInput')?.value || 'KR';
+                    const temp = parseInt(document.getElementById('clockTempInput')?.value) || 14;
+                    const maxTemp = parseInt(document.getElementById('clockMaxTempInput')?.value) || 18;
+                    const humidity = parseInt(document.getElementById('clockHumidityInput')?.value) || 32;
+                    const weather = document.getElementById('clockWeatherSelect')?.value || 'Clear';
+
+                    sendCommand({
+                        cmd: "clock",
+                        city: city,
+                        country: country,
+                        temp: temp,
+                        maxTemp: maxTemp,
+                        humidity: humidity,
+                        weather: weather,
+                        epoch: Math.floor(Date.now() / 1000),
+                        tz: -(new Date().getTimezoneOffset() / 60)
+                    });
+                    log(`Đã gửi lệnh chiếu Đồng Hồ Thời Gian Thực (${city}, ${temp}°C) lên Cube!`);
+                });
+            }
+
+            // Nút Đồng bộ thời gian & thời tiết
+            const btnSync = document.getElementById('btnSyncClockNow');
+            if (btnSync) {
+                btnSync.addEventListener('click', () => {
+                    const city = document.getElementById('clockCityInput')?.value || 'Seoul';
+                    const country = document.getElementById('clockCountryInput')?.value || 'KR';
+                    const temp = parseInt(document.getElementById('clockTempInput')?.value) || 14;
+                    const maxTemp = parseInt(document.getElementById('clockMaxTempInput')?.value) || 18;
+                    const humidity = parseInt(document.getElementById('clockHumidityInput')?.value) || 32;
+                    const weather = document.getElementById('clockWeatherSelect')?.value || 'Clear';
+
+                    sendCommand({
+                        cmd: "clock_sync",
+                        city: city,
+                        country: country,
+                        temp: temp,
+                        maxTemp: maxTemp,
+                        humidity: humidity,
+                        weather: weather,
+                        epoch: Math.floor(Date.now() / 1000)
+                    });
+                    log(`Đã đồng bộ giờ thiết bị & thời tiết sang Cube!`);
+                });
+            }
+
+            // Các nút chọn nhanh thành phố
+            document.querySelectorAll('.btn-city').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const city = btn.dataset.city;
+                    const country = btn.dataset.country;
+                    const lat = parseFloat(btn.dataset.lat);
+                    const lon = parseFloat(btn.dataset.lon);
+                    document.getElementById('clockCityInput').value = city;
+                    document.getElementById('clockCountryInput').value = country;
+                    fetchRealWeather(lat, lon, city, country);
+                });
+            });
+
+            // Nút lấy vị trí hiện tại (GPS / Geolocation)
+            const btnGeo = document.getElementById('btnAutoGeoLocation');
+            if (btnGeo) {
+                btnGeo.addEventListener('click', () => {
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(
+                            pos => {
+                                fetchRealWeather(pos.coords.latitude, pos.coords.longitude, "Vị trí của bạn", "VN");
+                            },
+                            err => {
+                                log("Không thể lấy GPS, đang dùng vị trí mặc định TP.HCM");
+                                fetchRealWeather(10.8231, 106.6297, "TP.HCM", "VN");
+                            }
+                        );
+                    } else {
+                        fetchRealWeather(10.8231, 106.6297, "TP.HCM", "VN");
+                    }
+                });
+            }
+
+            // Nút Refresh thời tiết
+            const btnRefresh = document.getElementById('btnRefreshWeather');
+            if (btnRefresh) {
+                btnRefresh.addEventListener('click', () => {
+                    const city = document.getElementById('clockCityInput')?.value || 'Seoul';
+                    if (city.toLowerCase().includes('hcm') || city.toLowerCase().includes('hồ chí minh')) {
+                        fetchRealWeather(10.8231, 106.6297, "TP.HCM", "VN");
+                    } else if (city.toLowerCase().includes('hà nội') || city.toLowerCase().includes('hanoi')) {
+                        fetchRealWeather(21.0285, 105.8542, "Hà Nội", "VN");
+                    } else if (city.toLowerCase().includes('đà nẵng') || city.toLowerCase().includes('danang')) {
+                        fetchRealWeather(16.0544, 108.2022, "Đà Nẵng", "VN");
+                    } else if (city.toLowerCase().includes('tokyo')) {
+                        fetchRealWeather(35.6762, 139.6503, "Tokyo", "JP");
+                    } else {
+                        fetchRealWeather(37.5665, 126.9780, "Seoul", "KR");
+                    }
+                });
+            }
+
+            // Tự động đồng bộ mỗi 10 phút sang Cube nếu đang mở web
+            setInterval(() => {
+                const autoSync = document.getElementById('chkAutoSyncClock');
+                if (autoSync && autoSync.checked && (typeof isConnected !== 'undefined' && isConnected)) {
+                    const city = document.getElementById('clockCityInput')?.value || 'Seoul';
+                    const country = document.getElementById('clockCountryInput')?.value || 'KR';
+                    const temp = parseInt(document.getElementById('clockTempInput')?.value) || 14;
+                    const maxTemp = parseInt(document.getElementById('clockMaxTempInput')?.value) || 18;
+                    const humidity = parseInt(document.getElementById('clockHumidityInput')?.value) || 32;
+                    const weather = document.getElementById('clockWeatherSelect')?.value || 'Clear';
+
+                    sendCommand({
+                        cmd: "clock_sync",
+                        city: city,
+                        country: country,
+                        temp: temp,
+                        maxTemp: maxTemp,
+                        humidity: humidity,
+                        weather: weather,
+                        epoch: Math.floor(Date.now() / 1000)
+                    });
+                }
+            }, 600000);
+        }
+
+        // Gọi khởi tạo Tab đồng hồ khi trang web tải xong
+        setTimeout(initClockTab, 300);
 
     </script>
 </body>
